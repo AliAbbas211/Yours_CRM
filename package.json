@@ -1,0 +1,19 @@
+{
+  "name": "yours-crm",
+  "version": "1.0.0",
+  "description": "Root package for running both backend and frontend",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix frontend",
+    "start": "concurrently \"npm run start --prefix backend\" \"npm run start --prefix frontend\""
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "next": "14.2.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
