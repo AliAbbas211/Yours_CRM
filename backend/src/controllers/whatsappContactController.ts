@@ -164,8 +164,8 @@ export const checkWhitelistForBot = async (req: Request, res: Response) => {
     });
 
     res.json({
-      allowed: !!entry?.isWhitelisted,
-      reason: entry?.isWhitelisted ? 'ok' : 'not_whitelisted',
+      allowed: !entry?.isWhitelisted,
+      reason: entry?.isWhitelisted ? 'blocked_whitelisted' : 'ok',
       clientId: client.id,
     });
   } catch (error) {
