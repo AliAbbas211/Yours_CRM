@@ -16,7 +16,7 @@ export default function GlobalSettingsPage() {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/settings', {
+      const res = await fetch('http://2.24.212.209/api/settings', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -35,7 +35,7 @@ export default function GlobalSettingsPage() {
     setMessage('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/settings', {
+      const res = await fetch('http://2.24.212.209/api/settings', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

@@ -26,7 +26,7 @@ export default function KnowledgeBasePage() {
   const fetchEntries = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/knowledge-bases', {
+      const res = await fetch('http://2.24.212.209/api/knowledge-bases', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -44,7 +44,7 @@ export default function KnowledgeBasePage() {
     if (!confirm('Are you sure you want to delete this knowledge base entry?')) return;
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://localhost:5000/api/knowledge-bases/${id}`, {
+      const res = await fetch(`http://2.24.212.209/api/knowledge-bases/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -79,7 +79,7 @@ export default function KnowledgeBasePage() {
         formData.append('file', file);
         if (title) formData.append('title', title);
         
-        res = await fetch('http://localhost:5000/api/knowledge-bases', {
+        res = await fetch('http://2.24.212.209/api/knowledge-bases', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: formData
@@ -87,7 +87,7 @@ export default function KnowledgeBasePage() {
       } else {
         const payloadType = activeTab === 'URL' ? 'URL' : type;
         const method = editingId ? 'PUT' : 'POST';
-        const url = editingId ? `http://localhost:5000/api/knowledge-bases/${editingId}` : 'http://localhost:5000/api/knowledge-bases';
+        const url = editingId ? `http://2.24.212.209/api/knowledge-bases/${editingId}` : 'http://2.24.212.209/api/knowledge-bases';
         res = await fetch(url, {
           method,
           headers: { 

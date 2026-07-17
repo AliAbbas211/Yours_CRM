@@ -38,7 +38,7 @@ export default function ProductsPage() {
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/products', {
+      const res = await fetch('http://2.24.212.209/api/products', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) setProducts(await res.json());
@@ -76,7 +76,7 @@ export default function ProductsPage() {
     if (!confirm('Delete this product? This also removes its images/videos from storage.')) return;
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://localhost:5000/api/products/${id}`, {
+      const res = await fetch(`http://2.24.212.209/api/products/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -105,7 +105,7 @@ export default function ProductsPage() {
       if (removeExisting) formData.append('removeExistingMedia', 'true');
       files.forEach((f) => formData.append('media', f));
 
-      const url = editingId ? `http://localhost:5000/api/products/${editingId}` : 'http://localhost:5000/api/products';
+      const url = editingId ? `http://2.24.212.209/api/products/${editingId}` : 'http://2.24.212.209/api/products';
       const method = editingId ? 'PUT' : 'POST';
 
       const res = await fetch(url, {

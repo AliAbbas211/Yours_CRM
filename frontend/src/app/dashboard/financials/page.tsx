@@ -14,7 +14,7 @@ export default function FinancialsPage() {
   const fetchFinancials = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/financials', {
+      const res = await fetch('http://2.24.212.209/api/financials', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -39,7 +39,7 @@ export default function FinancialsPage() {
 
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/financials/process', {
+      const res = await fetch('http://2.24.212.209/api/financials/process', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

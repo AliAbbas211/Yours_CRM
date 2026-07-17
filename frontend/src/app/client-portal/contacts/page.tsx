@@ -27,7 +27,7 @@ export default function ContactsPage() {
     setError('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/contacts/contacts', {
+      const res = await fetch('http://2.24.212.209/api/contacts/contacts', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -54,7 +54,7 @@ export default function ContactsPage() {
     setTogglingJid(contact.remoteJid);
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/contacts/whitelist', {
+      const res = await fetch('http://2.24.212.209/api/contacts/whitelist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

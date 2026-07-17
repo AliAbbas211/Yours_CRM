@@ -33,7 +33,7 @@ export default function ClientsPage() {
   const fetchClients = useCallback(async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const response = await fetch('http://localhost:5000/api/clients', {
+      const response = await fetch('http://2.24.212.209/api/clients', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -66,7 +66,7 @@ export default function ClientsPage() {
     if (!confirm('Are you sure you want to delete this client?')) return;
     try {
       const token = localStorage.getItem('crm_token');
-      await fetch(`http://localhost:5000/api/clients/${id}`, {
+      await fetch(`http://2.24.212.209/api/clients/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -16,7 +16,7 @@ export default function TeamPage() {
   const fetchTeam = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/team', {
+      const res = await fetch('http://2.24.212.209/api/team', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -34,7 +34,7 @@ export default function TeamPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/team', {
+      const res = await fetch('http://2.24.212.209/api/team', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export default function TeamPage() {
     if (!confirm('Are you sure you want to remove this team member?')) return;
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://localhost:5000/api/team/${id}`, {
+      const res = await fetch(`http://2.24.212.209/api/team/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

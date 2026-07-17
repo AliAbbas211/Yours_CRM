@@ -57,7 +57,7 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClient
 
     try {
       const token = localStorage.getItem('crm_token');
-      const response = await fetch('http://localhost:5000/api/clients', {
+      const response = await fetch('http://2.24.212.209/api/clients', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

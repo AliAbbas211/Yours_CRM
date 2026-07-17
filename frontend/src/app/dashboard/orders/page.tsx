@@ -28,7 +28,7 @@ export default function OrdersPage() {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/orders', {
+      const res = await fetch('http://2.24.212.209/api/orders', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -53,7 +53,7 @@ export default function OrdersPage() {
   const updateOrderStatus = async (id: string, newStatus: string) => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://localhost:5000/api/orders/${id}`, {
+      const res = await fetch(`http://2.24.212.209/api/orders/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

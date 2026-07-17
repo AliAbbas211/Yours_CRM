@@ -63,7 +63,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
       // the state update after the current render frame.
       setTimeout(() => setUser(parsed), 0);
 
-      fetch('http://localhost:5000/api/clients/portal/settings', {
+      fetch('http://2.24.212.209/api/clients/portal/settings', {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then((res) => res.json())
@@ -75,7 +75,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
         })
         .catch(console.error);
 
-      fetch('http://localhost:5000/api/settings')
+      fetch('http://2.24.212.209/api/settings')
         .then((res) => res.json())
         .then((data) => {
           if (data && data.COMPANY_MARQUEE) {
@@ -97,7 +97,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
     try {
       setIsUpdatingBot(true);
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/clients/portal/settings', {
+      const res = await fetch('http://2.24.212.209/api/clients/portal/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

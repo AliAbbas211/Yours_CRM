@@ -19,7 +19,7 @@ export default function ConfigAIPage() {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/clients', {
+      const res = await fetch('http://2.24.212.209/api/clients', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -52,7 +52,7 @@ export default function ConfigAIPage() {
   const checkStatus = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://localhost:5000/api/evolution/status/${selectedClientId}`, {
+      const res = await fetch(`http://2.24.212.209/api/evolution/status/${selectedClientId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -75,7 +75,7 @@ export default function ConfigAIPage() {
     setQrCode('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://localhost:5000/api/evolution/connect/${selectedClientId}`, {
+      const res = await fetch(`http://2.24.212.209/api/evolution/connect/${selectedClientId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const contentType = res.headers.get("content-type");

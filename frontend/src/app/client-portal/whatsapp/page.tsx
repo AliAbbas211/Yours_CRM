@@ -41,7 +41,7 @@ export default function WhatsAppPage() {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/clients/portal/settings', {
+      const res = await fetch('http://2.24.212.209/api/clients/portal/settings', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -61,7 +61,7 @@ export default function WhatsAppPage() {
     setScheduleMessage('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/clients/portal/settings', {
+      const res = await fetch('http://2.24.212.209/api/clients/portal/settings', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ export default function WhatsAppPage() {
     try {
       setCheckingStatus(true);
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://localhost:5000/api/evolution/status/${clientId}`, {
+      const res = await fetch(`http://2.24.212.209/api/evolution/status/${clientId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -118,7 +118,7 @@ export default function WhatsAppPage() {
     try {
       setLoadingQr(true);
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://localhost:5000/api/evolution/connect/${clientId}`, {
+      const res = await fetch(`http://2.24.212.209/api/evolution/connect/${clientId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -146,7 +146,7 @@ export default function WhatsAppPage() {
 
     try {
       const token = localStorage.getItem('crm_token');
-      await fetch(`http://localhost:5000/api/evolution/logout/${clientId}`, {
+      await fetch(`http://2.24.212.209/api/evolution/logout/${clientId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

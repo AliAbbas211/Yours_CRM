@@ -63,7 +63,7 @@ export default function Client360Modal({ isOpen, onClose, client, onRefresh }: C
     try {
       const token = localStorage.getItem('crm_token');
       const action = isDisabledBySuperAdmin ? 'enable-bot' : 'disable-bot';
-      const res = await fetch(`http://localhost:5000/api/admin/clients/${client.id}/${action}`, {
+      const res = await fetch(`http://2.24.212.209/api/admin/clients/${client.id}/${action}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });

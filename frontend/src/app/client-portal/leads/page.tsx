@@ -16,7 +16,7 @@ export default function LeadsPage() {
   const fetchLeads = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://localhost:5000/api/leads', {
+      const res = await fetch('http://2.24.212.209/api/leads', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -33,7 +33,7 @@ export default function LeadsPage() {
   const toggleBot = async (id: string, currentStatus: boolean) => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://localhost:5000/api/leads/${id}/bot`, {
+      const res = await fetch(`http://2.24.212.209/api/leads/${id}/bot`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
