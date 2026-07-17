@@ -16,6 +16,7 @@ import productRoutes from './routes/productRoutes';
 import contactRoutes from './routes/contactRoutes';
 import invoiceRoutes from './routes/invoiceRoutes';
 import botRoutes from './routes/botRoutes';
+import internalRoutes from './routes/internalRoutes';
 
 import { startScheduleService } from './services/scheduleService';
 import './cron/subscriptionExpiry';
@@ -44,6 +45,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/invoice', invoiceRoutes);
 app.use('/api/bot', botRoutes); // n8n-facing: /api/bot/context, /api/bot/check-whitelist, /api/bot/product-lookup
+app.use('/api/internal', internalRoutes);
 
 startScheduleService();
 
