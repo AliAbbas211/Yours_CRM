@@ -55,3 +55,29 @@ export const sendWhatsAppMessage = async (req: Request, res: Response) => {
   });
   res.json({ success: true, data: response.data });
 };
+
+export const createMessage = async (req: Request, res: Response) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== INTERNAL_API_KEY) return res.status(401).json({ error: 'Invalid API key' });
+
+  const leadIdParam = req.params.leadId;
+  const leadId = Array.isArray(leadIdParam) ? leadIdParam[0] : leadIdParam;
+  const { sender, content } = req.body;
+
+  if (!leadId || !content || !sender) {
+    return res.status(400).json({ error: 'leadId, sender, and content are required' });
+  }
+
+  try {
+    const message = await prisma.message.create({
+      data: { leadId, sender, content },
+    });
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: { lastInteraction: new Date() },
+    });
+    res.json(message);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save message' });
+  }
+};
