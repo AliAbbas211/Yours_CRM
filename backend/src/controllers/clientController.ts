@@ -284,14 +284,9 @@ export const updateClientSettings = async (req: Request, res: Response) => {
         timezone
       },
       create: {
+        id: clientId,
         client: { connect: { id: clientId } },
         isActive: isActive !== undefined ? isActive : true,
-        scheduleEnabled: scheduleEnabled !== undefined ? scheduleEnabled : false,
-        scheduleStartTime,
-        scheduleEndTime,
-        timezone: timezone || "UTC"
-      }
-    });
 
     res.json({ ...updatedClient, agentConfig: updatedAgentConfig });
   } catch (error) {
