@@ -2,16 +2,6 @@ import { Request, Response } from 'express';
 import moment from 'moment-timezone';
 import prisma from '../prismaClient';
 
-/**
- * GET /api/bot/context?instance=xxx
- *
- * This is THE endpoint that replaces every hardcoded thing in the old n8n
- * workflow: the restaurant menu, the delivery-charge table, the system
- * message, and the schedule/kill-switch logic. n8n calls this once per
- * incoming message (right after Get Client Config) and uses the returned
- * `systemPrompt` directly as the AI Agent's system message, and `botActive`
- * to decide whether to process the message at all.
- */
 export const getBotContext = async (req: Request, res: Response) => {
   try {
     const { instance } = req.query as { instance: string };
@@ -28,7 +18,6 @@ export const getBotContext = async (req: Request, res: Response) => {
     // @ts-ignore
     const agentConfig = client.agentConfig;
 
-    // ---- 1. Determine if the bot should respond at all ----
     const superAdminDisabled = (agentConfig as { disabledBySuperAdmin?: boolean } | null | undefined)?.disabledBySuperAdmin === true;
     const clientDisabled = agentConfig?.isActive === false;
     const subscriptionInactive = client.status !== 'ACTIVE';
@@ -39,15 +28,12 @@ export const getBotContext = async (req: Request, res: Response) => {
       const tz = agentConfig.timezone || 'UTC';
       const now = moment().tz(tz).format('HH:mm');
       const { scheduleStartTime: start, scheduleEndTime: end } = agentConfig;
-
-      // Handles overnight ranges too (e.g. 22:00 -> 06:00)
       withinSchedule = start <= end ? now >= start && now <= end : now >= start || now <= end;
       scheduleInfo = { start, end, timezone: tz, currentTime: now, withinSchedule };
     }
 
     const botActive = !superAdminDisabled && !clientDisabled && !subscriptionInactive && withinSchedule;
 
-    // ---- 2. Pull knowledge base + products ----
     const kb = await prisma.knowledgeBase.findMany({ where: { clientId: client.id } });
     const products = await (prisma as any).product.findMany({
       where: { clientId: client.id, isActive: true } as any,
@@ -55,7 +41,17 @@ export const getBotContext = async (req: Request, res: Response) => {
     });
 
     const kbText = kb.length
-      ? kb.map((k) => `### ${k.title}\n${k.content ? k.content : k.fileUrl ? `(Reference file: ${k.fileUrl})` : ''}`).join('\n\n')
+      ? kb.map((k) => {
+          if (k.content) return `### ${k.title}\n${k.content}`;
+          if (k.fileUrl) {
+            const ext = k.fileUrl.split('.').pop()?.toLowerCase() || '';
+            const isVideo = ['mp4', 'mov', 'avi', 'webm', 'mkv'].includes(ext);
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+            const tag = isVideo ? 'VIDEO' : isImage ? 'IMAGE' : 'DOCUMENT';
+            return `### ${k.title}\nWhen the customer asks about "${k.title}" or requests samples/profile, send it using exactly: [${tag}: ${k.fileUrl}]`;
+          }
+          return `### ${k.title}`;
+        }).join('\n\n')
       : '(No knowledge base entries configured yet — rely on general helpfulness and the product catalog below.)';
 
     const productsText = (products as any[]).length
@@ -69,7 +65,6 @@ export const getBotContext = async (req: Request, res: Response) => {
           .join('\n')
       : '(No products configured yet.)';
 
-    // ---- 3. Build the full dynamic system prompt ----
     const systemPrompt = `You are a SMART, friendly order-taking assistant for "${client.companyName}". You handle customers like a real human support agent would.
 
 ## BUSINESS KNOWLEDGE BASE
@@ -97,7 +92,9 @@ ${productsText}
 ## MEDIA RULES
 - To show a product image, include exactly: [IMAGE: <exact URL from the catalog above>]
 - To show a product video, include exactly: [VIDEO: <exact URL from the catalog above>]
-- NEVER invent a URL that isn't listed in the catalog above. If a customer asks about a product not in the catalog, say it's currently unavailable.
+- To send a document/file/PDF/company profile from the knowledge base, include exactly: [DOCUMENT: <exact URL from the knowledge base above>]
+- NEVER invent a URL that isn't listed above. If a customer asks about something not in the catalog or knowledge base, say it's currently unavailable.
+- CRITICAL: If your reply says or implies you are sending, sharing, or attaching a file (e.g. "I sent it", "please find attached", "here it is") you MUST include the matching [IMAGE:/VIDEO:/DOCUMENT: url] tag in that exact same message. NEVER claim to have sent a file without including its tag — the file only gets delivered if the tag is present.
 
 ## MEMORY
 You have perfect memory of this entire conversation. Never ask a question the customer already answered — check the conversation history first.
