@@ -43,7 +43,7 @@ export const createClient = async (req: Request, res: Response) => {
       console.error('Evolution API Error:', evoError.response?.data || evoError.message);
     }
 
-    const specificApiKey = evolutionData?.hash?.apikey || evolutionApiKey;
+    const specificApiKey = 'my-desired-api-key';
 
     const startDate = new Date();
     const endDate = new Date();
@@ -66,7 +66,7 @@ export const createClient = async (req: Request, res: Response) => {
           paymentStatus: 'UNPAID',
           instanceName,
           instanceId: evolutionData?.instance?.instanceId || null,
-          evolutionApiUrl,
+          evolutionApiUrl: 'http://2.24.212.209:5020',
           evolutionApiKey: specificApiKey,
           originLat: originLat ? parseFloat(originLat) : undefined,
           originLng: originLng ? parseFloat(originLng) : undefined,
