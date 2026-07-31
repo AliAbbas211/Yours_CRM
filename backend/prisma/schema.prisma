@@ -91,6 +91,10 @@ model Client {
   evolutionApiKey String?
   n8nWebhookUrl   String?
 
+  // n8n internal automation — company profile media
+  companyProfileDocUrl   String?
+  companyProfileVideoUrl String?
+
   // AI Config
   defaultAiModel String  @default("gemini-2.5-flash")
   defaultPrompt  String?
