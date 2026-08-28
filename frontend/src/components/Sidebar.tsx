@@ -14,7 +14,8 @@ import {
   Settings,
   LogOut,
   ShoppingCart,
-  Package
+  Package,
+  Ticket
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -54,15 +55,21 @@ export default function Sidebar({ role }: SidebarProps) {
     { name: 'Leads', href: '/dashboard/leads', icon: PhoneCall },
   ];
 
-  // NEW: Products + Contacts & Whitelist added for clients — this is what
-  // powers "client manages their own products / whitelist from their portal".
+  // Products added for clients — client manages their own product catalog from their portal.
+  // Contacts & Whitelist removed (Aug 2026) — was fully redundant with Lead.botEnabled
+  // (per-lead mute) and Client.replyInGroups (group-chat gate); both are now controlled
+  // from Settings / the Leads table instead of a separate module.
+  // Tickets added (Aug 2026) — one auto-opens per order so the client can track
+  // and close out customer follow-up from a single place.
+  // Billing added (Aug 2026) — subscription status, renewal date, and payment history.
   const clientLinks = [
     { name: 'Dashboard', href: '/client-portal', icon: LayoutDashboard },
     { name: 'Products', href: '/client-portal/products', icon: Package },
-    { name: 'Contacts & Whitelist', href: '/client-portal/contacts', icon: Users },
+    { name: 'Tickets', href: '/client-portal/tickets', icon: Ticket },
     { name: 'Knowledge Base', href: '/client-portal/knowledge-base', icon: BookOpen },
     { name: 'Leads', href: '/client-portal/leads', icon: PhoneCall },
     { name: 'WhatsApp Connect', href: '/client-portal/whatsapp', icon: MessageCircle },
+    { name: 'Billing', href: '/client-portal/billing', icon: CreditCard },
     { name: 'Settings', href: '/client-portal/settings', icon: Settings },
   ];
 

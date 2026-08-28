@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../prismaClient';
+const prismaAny = prisma as any;
 
 export const getFinancials = async (req: Request, res: Response) => {
   try {
@@ -7,10 +8,18 @@ export const getFinancials = async (req: Request, res: Response) => {
       select: {
         id: true,
         companyName: true,
+        currency: true,
+        monthlyRate: true,
+        installationCharge: true,
         paymentStatus: true,
         subscriptionEndDate: true,
         amountCharged: true
-      }
+      } as any
+    });
+
+    const payments = await prismaAny.subscriptionPayment.findMany({
+      orderBy: { paidAt: 'desc' },
+      include: { client: { select: { companyName: true, currency: true } } }
     });
 
     const invoices = await prisma.invoice.findMany({
@@ -20,7 +29,25 @@ export const getFinancials = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({ clients, invoices });
+    // Group total collected (from the payment ledger, the real source of
+    // truth for money received) by each client's OWN currency — never sum
+    // across different currencies into one misleading combined number.
+    const totalsByCurrency: Record<string, number> = {};
+    const collectedByClient: Record<string, number> = {};
+
+    for (const p of payments as any[]) {
+      const code = p.client?.currency || 'PKR';
+      totalsByCurrency[code] = (totalsByCurrency[code] || 0) + p.amount;
+      collectedByClient[p.clientId] = (collectedByClient[p.clientId] || 0) + p.amount;
+    }
+
+    const clientsWithTotals = (clients as any[]).map((c) => ({
+      ...c,
+      currency: c.currency || 'PKR',
+      totalCollected: collectedByClient[c.id] || 0
+    }));
+
+    res.json({ clients: clientsWithTotals, invoices, payments, totalsByCurrency });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

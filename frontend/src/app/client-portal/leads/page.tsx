@@ -1,13 +1,31 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Bot, Phone, Mail, Clock, ShieldAlert, CheckCircle, Activity, User, MessageCircle } from 'lucide-react';
+import { Search, Bot, Phone, Mail, Clock, Activity, User, Sparkles } from 'lucide-react';
+
+interface LeadRow {
+  id: string;
+  name: string;
+  phoneNumber: string;
+  email?: string;
+  companyName?: string;
+  interestedService?: string;
+  summary?: string;
+  potentialValue?: number;
+  source?: string;
+  status: string;
+  botEnabled: boolean;
+  conversionLikelihood?: string;
+  nextFollowUpSuggestion?: string;
+  _count?: { messages?: number };
+}
 
 export default function LeadsPage() {
-  const [leads, setLeads] = useState<any[]>([]);
+  const [leads, setLeads] = useState<LeadRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [viewMode, setViewMode] = useState<'all' | 'new'>('all');
 
   useEffect(() => {
     fetchLeads();
@@ -35,13 +53,13 @@ export default function LeadsPage() {
       const token = localStorage.getItem('crm_token');
       const res = await fetch(`http://2.24.212.209/api/leads/${id}/bot`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ botEnabled: !currentStatus })
       });
-      
+
       if (res.ok) {
         setLeads(leads.map(lead => lead.id === id ? { ...lead, botEnabled: !currentStatus } : lead));
       }
@@ -50,12 +68,25 @@ export default function LeadsPage() {
     }
   };
 
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = lead.name.toLowerCase().includes(search.toLowerCase()) || 
+  const isNewLead = (lead: LeadRow) => (lead._count?.messages ?? 0) === 0;
+  const newLeadsCount = leads.filter(isNewLead).length;
+
+  const scopedLeads = viewMode === 'new' ? leads.filter(isNewLead) : leads;
+
+  const filteredLeads = scopedLeads.filter(lead => {
+    const matchesSearch = lead.name.toLowerCase().includes(search.toLowerCase()) ||
                           lead.phoneNumber.includes(search);
     const matchesStatus = statusFilter === 'ALL' || lead.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const likelihoodStyle = (label?: string) => {
+    const upper = (label || '').toUpperCase();
+    if (upper.indexOf('HOT') !== -1) return 'bg-red-50 text-red-600 border-red-100';
+    if (upper.indexOf('WARM') !== -1) return 'bg-amber-50 text-amber-600 border-amber-100';
+    if (upper.indexOf('COLD') !== -1) return 'bg-gray-100 text-gray-500 border-gray-200';
+    return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+  };
 
   return (
     <div className="space-y-6">
@@ -66,18 +97,34 @@ export default function LeadsPage() {
         </div>
       </div>
 
+      <div className="flex items-center space-x-2 bg-white border border-gray-100 rounded-xl p-1.5 w-max shadow-sm">
+        <button
+          onClick={() => setViewMode('all')}
+          className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${viewMode === 'all' ? 'bg-[#0a1142] text-white' : 'text-gray-500 hover:text-[#0a1142]'}`}
+        >
+          All Leads ({leads.length})
+        </button>
+        <button
+          onClick={() => setViewMode('new')}
+          className={`flex items-center space-x-1.5 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${viewMode === 'new' ? 'bg-[#0a1142] text-white' : 'text-gray-500 hover:text-[#0a1142]'}`}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>New Leads ({newLeadsCount})</span>
+        </button>
+      </div>
+
       <div className="flex items-center space-x-4">
         <div className="flex-1 bg-white p-3 rounded-xl border border-gray-100 flex items-center shadow-sm">
           <Search className="w-5 h-5 text-gray-400 ml-2 mr-3" />
-          <input 
-            type="text" 
-            placeholder="Search leads by name or phone number..." 
+          <input
+            type="text"
+            placeholder="Search leads by name or phone number..."
             className="w-full outline-none text-gray-700 font-medium bg-transparent"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
+        <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="bg-white border border-gray-100 rounded-xl p-3 font-bold text-[#0a1142] shadow-sm outline-none focus:border-[#d51381]"
@@ -97,7 +144,7 @@ export default function LeadsPage() {
             <tr className="bg-gray-50/50 border-b border-gray-100">
               <th className="p-5 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Lead Identity</th>
               <th className="p-5 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Contact Info</th>
-              <th className="p-5 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Interest & Summary</th>
+              <th className="p-5 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Interest, Summary &amp; AI Insight</th>
               <th className="p-5 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Potential Value</th>
               <th className="p-5 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Status</th>
               <th className="p-5 font-bold text-[#899bb1] text-xs uppercase tracking-wider">AI Bot</th>
@@ -113,7 +160,7 @@ export default function LeadsPage() {
                 <td colSpan={6} className="p-16 text-center text-gray-500">
                   <User className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="font-bold">No leads found.</p>
-                  <p className="text-sm">Wait for users to message your WhatsApp instance.</p>
+                  <p className="text-sm">{viewMode === 'new' ? 'No brand-new leads right now.' : 'Wait for users to message your WhatsApp instance.'}</p>
                 </td>
               </tr>
             ) : (
@@ -125,7 +172,14 @@ export default function LeadsPage() {
                         {lead.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-bold text-[#0a1142]">{lead.name}</p>
+                        <div className="flex items-center space-x-2">
+                          <p className="font-bold text-[#0a1142]">{lead.name}</p>
+                          {isNewLead(lead) && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100">
+                              New
+                            </span>
+                          )}
+                        </div>
                         {lead.companyName ? (
                           <p className="text-xs text-gray-500 font-medium flex items-center mt-0.5">
                             <Activity className="w-3 h-3 mr-1" /> {lead.companyName}
@@ -136,7 +190,7 @@ export default function LeadsPage() {
                       </div>
                     </div>
                   </td>
-                  
+
                   <td className="p-5">
                     <div className="space-y-1.5">
                       <div className="flex items-center text-sm font-medium text-gray-600">
@@ -151,7 +205,7 @@ export default function LeadsPage() {
                   </td>
 
                   <td className="p-5 max-w-xs">
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {lead.interestedService ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-50 text-indigo-600">
                           {lead.interestedService}
@@ -160,8 +214,19 @@ export default function LeadsPage() {
                         <span className="text-xs text-gray-400 italic">No specific service</span>
                       )}
                       {lead.summary && (
-                        <p className="text-xs text-gray-500 font-medium line-clamp-2 mt-1" title={lead.summary}>
+                        <p className="text-xs text-gray-500 font-medium line-clamp-2" title={lead.summary}>
                           {lead.summary}
+                        </p>
+                      )}
+                      {lead.conversionLikelihood && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${likelihoodStyle(lead.conversionLikelihood)}`}>
+                          {lead.conversionLikelihood}
+                        </span>
+                      )}
+                      {lead.nextFollowUpSuggestion && (
+                        <p className="text-[11px] text-gray-400 font-medium flex items-start mt-1" title={lead.nextFollowUpSuggestion}>
+                          <Clock className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" />
+                          <span className="line-clamp-2">{lead.nextFollowUpSuggestion}</span>
                         </p>
                       )}
                     </div>
@@ -189,7 +254,7 @@ export default function LeadsPage() {
                       <div className="flex items-center space-x-1.5">
                         <Bot className={`w-4 h-4 ${lead.botEnabled ? 'text-emerald-500' : 'text-gray-400'}`} />
                       </div>
-                      <button 
+                      <button
                         onClick={() => toggleBot(lead.id, lead.botEnabled)}
                         className={`w-10 h-5 rounded-full flex items-center transition-colors p-0.5 ${lead.botEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
                       >

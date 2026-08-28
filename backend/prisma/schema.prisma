@@ -75,7 +75,9 @@ model Client {
   email        String  @unique
   phoneNumber  String?
   address      String?
-
+  currency     String? // ISO-ish code (PKR, GBP, USD, etc.) shown in bot replies + invoices; defaults to PKR when unset
+  monthlyRate        Float? // recurring monthly subscription rate, in `currency`
+  installationCharge Float? // one-time setup/installation charge, in `currency`
   // Subscription info
   subscriptionStartDate DateTime?
   subscriptionEndDate   DateTime?
@@ -83,33 +85,36 @@ model Client {
   amountCharged         Float         @default(0.0)
   paymentStatus         PaymentStatus @default(UNPAID)
   status                ClientStatus  @default(ACTIVE)
-
   // Evolution API
   instanceName    String?
   instanceId      String?
   evolutionApiUrl String?
   evolutionApiKey String?
   n8nWebhookUrl   String?
-
   // AI Config
   defaultAiModel String  @default("gemini-2.5-flash")
   defaultPrompt  String?
   temperature    Float   @default(0.7)
   maxTokens      Int     @default(500)
-
   // NEW: Business origin point for delivery-distance calculation.
   // Set this from the client's portal (Settings page) — this is the
   // point deliveries are measured FROM.
   originLat Float?
   originLng Float?
   originAddress String?
-
   // NEW: master bot enable flag, separate from AgentConfig.isActive,
   // kept for backwards compatibility with existing code that reads client.botEnabled
   botEnabled Boolean @default(true)
-
+  avatarUrl         String?
+  // NEW: E-commerce integration (module-gated, optional per client).
+  // enabledModules is set ONLY by a SUPER_ADMIN from the admin dashboard —
+  // clients cannot grant themselves modules. "ECOMMERCE_INTEGRATION" is the
+  // first module key; more can be added the same way later.
+  enabledModules                   String[] @default([])
+  ecommercePlatform                String?  @default("CUSTOM")
+  ecommerceWebhookSecret           String?
+  ecommerceOrderConfirmCallbackUrl String?
   agentConfig AgentConfig?
-
   users             User[]
   knowledgeBases    KnowledgeBase[]
   leads             Lead[]
@@ -117,7 +122,7 @@ model Client {
   invoices          Invoice[]
   products          Product[]
   whitelistContacts WhitelistContact[]
-
+  subscriptionPayments SubscriptionPayment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -151,12 +156,20 @@ model Lead {
   potentialValue    Float?
   source            String?
   status            LeadStatus @default(NEW)
+  conversionLikelihood   String?   // AI-estimated label: HOT / WARM / COLD
+  nextFollowUpSuggestion String?   // AI-suggested next follow-up action/timing
+  lastSummarizedAt       DateTime? // when the AI last (re)generated summary/likelihood for this lead
   assignedDate      DateTime?
   lastInteraction   DateTime?
   botEnabled        Boolean    @default(true)
-
+  avatarUrl         String?
+  // NEW: e-commerce order-confirmation tracking. Set when an order created
+  // via the e-commerce webhook is awaiting a "Yes" WhatsApp reply from this
+  // lead; cleared once confirmed (or abandoned). Not a Prisma relation on
+  // purpose — kept as a loose id reference, same style as other cross-model
+  // ids in this schema.
+  pendingConfirmationOrderId String? @db.ObjectId
   messages Message[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -195,7 +208,6 @@ model Order {
   products      String
   address       String
   status        OrderStatus @default(PENDING)
-
   // NEW: financial + delivery breakdown, set by the invoice generation flow
   subtotal       Float?
   deliveryCharge Float?
@@ -203,11 +215,14 @@ model Order {
   total          Float?
   invoiceUrl     String?
   invoiceNumber  String?
-
   // NEW: geocoded delivery point (so distance never has to be recomputed)
   deliveryLat Float?
   deliveryLng Float?
-
+  // NEW: e-commerce integration — where this order came from, and the
+  // order id on the client's OWN site (so we can tell them which order
+  // to mark confirmed when we call their callback URL back).
+  source         String? @default("MANUAL")
+  externalOrderId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -235,12 +250,17 @@ model AgentConfig {
   scheduleStartTime    String?
   scheduleEndTime      String?
   timezone             String   @default("UTC")
-
   // NEW: Super-admin-only kill switch. When true, the client CANNOT
   // re-enable their own bot (isActive) from the client portal — only
   // a SUPER_ADMIN can clear this flag.
   disabledBySuperAdmin Boolean  @default(false)
-
+  // NEW: Bot Behaviour and Identity module — lets each client customize
+  // who their bot is, its designation, its responsibilities, and scope.
+  // All optional; system prompt falls back to a generic identity if unset.
+  botName              String?
+  botDesignation       String?
+  botRole              String?
+  botJobDescription    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -260,12 +280,26 @@ model Product {
   name        String
   description String?
   price       Float
+  lastPrice   Float?
   category    String?
   images      String[] @default([])
   videos      String[] @default([])
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+model SubscriptionPayment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId    String   @db.ObjectId
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  amount      Float
+  periodLabel String?
+  note        String?
+  paidAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
 
   @@index([clientId])
 }

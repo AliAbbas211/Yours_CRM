@@ -48,6 +48,16 @@ export const getClientConfigForN8n = async (req: Request, res: Response) => {
  * SUPER_ADMIN ONLY. Forcibly disables a client's bot. Sets both isActive=false
  * AND disabledBySuperAdmin=true — the second flag is what prevents the client
  * from flipping isActive back on themselves from their own portal.
+ *
+ * IMPORTANT: AgentConfig has its own auto-generated `id` (_id), separate
+ * from the client's id — only the uniquely-indexed `clientId` field links
+ * the two records. Looking this up by `where: { id: clientId }` silently
+ * fails to find the existing record for any normally-provisioned client
+ * (whose AgentConfig._id was auto-generated, not forced to equal the
+ * client's id), which made this upsert fall through to `create` and throw
+ * a duplicate-key error on the unique `clientId` field — i.e. disabling or
+ * enabling a client's bot from the admin panel would 500. Must key off
+ * `clientId`.
  */
 export const disableClientBot = async (req: Request, res: Response) => {
   try {
@@ -59,10 +69,10 @@ export const disableClientBot = async (req: Request, res: Response) => {
     }
 
     const agentConfig = await prisma.agentConfig.upsert({
-      where: { id: clientId },
+      where: { clientId } as any,
       update: { isActive: false, disabledBySuperAdmin: true, status: 'OFFLINE' } as any,
       create: {
-        client: { connect: { id: clientId } },
+        clientId,
         isActive: false,
         disabledBySuperAdmin: true,
         status: 'OFFLINE',
@@ -86,6 +96,7 @@ export const disableClientBot = async (req: Request, res: Response) => {
 
 /**
  * SUPER_ADMIN ONLY. Clears the kill switch and re-enables the bot.
+ * See the note on disableClientBot above — same clientId-vs-id fix applies.
  */
 export const enableClientBot = async (req: Request, res: Response) => {
   try {
@@ -97,10 +108,10 @@ export const enableClientBot = async (req: Request, res: Response) => {
     }
 
     const agentConfig = await prisma.agentConfig.upsert({
-      where: { id: clientId },
+      where: { clientId } as any,
       update: { isActive: true, disabledBySuperAdmin: false, status: 'ONLINE' } as any,
       create: {
-        client: { connect: { id: clientId } },
+        clientId,
         isActive: true,
         disabledBySuperAdmin: false,
         status: 'ONLINE',

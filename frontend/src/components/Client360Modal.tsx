@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { X, User, Building2, Calendar, Globe, Zap, CreditCard, Activity, Link as LinkIcon, BookOpen, Users, DollarSign, Database, Power, ShieldAlert, Loader2 } from 'lucide-react';
+import { X, User, Building2, Calendar, Globe, Zap, CreditCard, Activity, Link as LinkIcon, BookOpen, Users, DollarSign, Database, Power, ShieldAlert, Loader2, Receipt, Plus } from 'lucide-react';
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  PKR: 'Rs', USD: '$', GBP: '£', EUR: '€', AED: 'AED', SAR: 'SAR', INR: '₹', CAD: 'C$', AUD: 'A$'
+};
+
+interface SubscriptionPaymentData {
+  id: string;
+  amount: number;
+  periodLabel?: string | null;
+  note?: string | null;
+  paidAt: string;
+}
 
 interface ClientData {
   id: string;
@@ -27,7 +39,10 @@ interface ClientData {
   };
   amountCharged?: number;
   paymentStatus?: string;
+  subscriptionStartDate?: string;
   subscriptionEndDate?: string;
+  currency?: string;
+  subscriptionPayments?: SubscriptionPaymentData[];
 }
 
 interface Client360ModalProps {
@@ -41,6 +56,9 @@ export default function Client360Modal({ isOpen, onClose, client, onRefresh }: C
   const [activeTab, setActiveTab] = useState<'config' | 'kb' | 'leads' | 'billing'>('config');
   const [botActionLoading, setBotActionLoading] = useState(false);
   const [botActionMessage, setBotActionMessage] = useState('');
+  const [paymentForm, setPaymentForm] = useState({ amount: '', periodLabel: '', note: '', extendDays: '30' });
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState('');
 
   if (!isOpen || !client) return null;
 
@@ -56,6 +74,7 @@ export default function Client360Modal({ isOpen, onClose, client, onRefresh }: C
   }
 
   const isDisabledBySuperAdmin = !!client.agentConfig?.disabledBySuperAdmin;
+  const currencySymbol = CURRENCY_SYMBOLS[client.currency || 'PKR'] || client.currency || 'Rs';
 
   const handleToggleBotKillSwitch = async () => {
     setBotActionLoading(true);
@@ -80,6 +99,43 @@ export default function Client360Modal({ isOpen, onClose, client, onRefresh }: C
     } finally {
       setBotActionLoading(false);
       setTimeout(() => setBotActionMessage(''), 4000);
+    }
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentForm.amount) return;
+    setPaymentSubmitting(true);
+    setPaymentMessage('');
+    try {
+      const token = localStorage.getItem('crm_token');
+      const res = await fetch(`http://2.24.212.209/api/clients/${client.id}/payments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: parseFloat(paymentForm.amount),
+          periodLabel: paymentForm.periodLabel || undefined,
+          note: paymentForm.note || undefined,
+          extendDays: paymentForm.extendDays ? parseInt(paymentForm.extendDays) : undefined,
+        })
+      });
+      if (res.ok) {
+        setPaymentMessage('Payment recorded and subscription renewed.');
+        setPaymentForm({ amount: '', periodLabel: '', note: '', extendDays: '30' });
+        if (onRefresh) onRefresh();
+      } else {
+        const err = await res.json();
+        setPaymentMessage(err.message || 'Failed to record payment.');
+      }
+    } catch (error) {
+      console.error('Record payment error', error);
+      setPaymentMessage('An error occurred.');
+    } finally {
+      setPaymentSubmitting(false);
+      setTimeout(() => setPaymentMessage(''), 5000);
     }
   };
 
@@ -290,16 +346,21 @@ export default function Client360Modal({ isOpen, onClose, client, onRefresh }: C
             )}
 
             {activeTab === 'billing' && (
-              <div className="animate-in fade-in duration-300">
-                <h3 className="text-xl font-bold text-[#0a1142] mb-6">Billing & Financials</h3>
+              <div className="animate-in fade-in duration-300 space-y-8">
+                <h3 className="text-xl font-bold text-[#0a1142]">Billing & Financials</h3>
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Subscription Status</p>
                     <p className="text-3xl font-extrabold text-[#0a1142]">{client.status}</p>
                     <div className="mt-6 flex items-center text-sm font-medium text-gray-500">
-                      <CreditCard className="w-4 h-4 mr-2" /> Amount Charged: ${client.amountCharged?.toLocaleString() || 0}
+                      <CreditCard className="w-4 h-4 mr-2" /> Amount Charged: {currencySymbol} {client.amountCharged?.toLocaleString() || 0}
                     </div>
+                    {client.subscriptionStartDate && (
+                      <div className="mt-2 text-sm font-medium text-gray-500">
+                        Onboarded: {new Date(client.subscriptionStartDate).toLocaleDateString('en-GB')}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-2xl border border-emerald-100 shadow-sm">
@@ -307,8 +368,85 @@ export default function Client360Modal({ isOpen, onClose, client, onRefresh }: C
                     <p className="text-3xl font-extrabold text-emerald-700">{client.paymentStatus || 'UNPAID'}</p>
                     <div className="mt-6 flex items-center text-sm font-medium text-emerald-600">
                       <Calendar className="w-4 h-4 mr-2" />
-                      {client.subscriptionEndDate ? `Renews: ${new Date(client.subscriptionEndDate).toLocaleDateString()}` : 'No renewal date set'}
+                      {client.subscriptionEndDate ? `Renews: ${new Date(client.subscriptionEndDate).toLocaleDateString('en-GB')}` : 'No renewal date set'}
                     </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                  <h4 className="text-sm font-bold text-[#0a1142] uppercase tracking-wider mb-4 flex items-center">
+                    <Plus className="w-4 h-4 mr-2 text-[#d51381]" /> Record a Payment / Renew
+                  </h4>
+                  <form onSubmit={handleRecordPayment} className="grid grid-cols-4 gap-4 items-end">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Amount ({currencySymbol})</label>
+                      <input
+                        type="number" step="0.01" required
+                        value={paymentForm.amount}
+                        onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#0a1142]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Period (optional)</label>
+                      <input
+                        type="text" placeholder="e.g. August 2026"
+                        value={paymentForm.periodLabel}
+                        onChange={(e) => setPaymentForm({ ...paymentForm, periodLabel: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#0a1142]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Extend By (days)</label>
+                      <input
+                        type="number"
+                        value={paymentForm.extendDays}
+                        onChange={(e) => setPaymentForm({ ...paymentForm, extendDays: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#0a1142]"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={paymentSubmitting}
+                      className="px-5 py-2.5 bg-[#0a1142] hover:bg-[#131b54] text-white font-bold rounded-lg text-sm disabled:opacity-60 flex items-center justify-center"
+                    >
+                      {paymentSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Record Payment'}
+                    </button>
+                  </form>
+                  {paymentMessage && <p className="text-xs font-bold mt-3 text-gray-600">{paymentMessage}</p>}
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-bold text-[#0a1142] uppercase tracking-wider mb-4 flex items-center">
+                    <Receipt className="w-4 h-4 mr-2 text-[#d51381]" /> Payment History
+                  </h4>
+                  <div className="bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-200 bg-white">
+                          <th className="p-3 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Date</th>
+                          <th className="p-3 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Period</th>
+                          <th className="p-3 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Amount</th>
+                          <th className="p-3 font-bold text-[#899bb1] text-xs uppercase tracking-wider">Note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {!client.subscriptionPayments || client.subscriptionPayments.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="p-6 text-center text-gray-400 font-medium text-sm">No payments recorded yet.</td>
+                          </tr>
+                        ) : (
+                          client.subscriptionPayments.map((p) => (
+                            <tr key={p.id} className="border-b border-gray-100 bg-white">
+                              <td className="p-3 text-sm font-semibold text-gray-700">{new Date(p.paidAt).toLocaleDateString('en-GB')}</td>
+                              <td className="p-3 text-sm text-gray-600">{p.periodLabel || '—'}</td>
+                              <td className="p-3 text-sm font-bold text-[#0a1142]">{currencySymbol} {p.amount.toLocaleString()}</td>
+                              <td className="p-3 text-sm text-gray-500">{p.note || '—'}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

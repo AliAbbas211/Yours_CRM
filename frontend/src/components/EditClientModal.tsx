@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, Loader2, Globe, Settings, Zap, Link as LinkIcon, User, Building2, Mail, Phone, MapPin } from 'lucide-react';
+import { X, Check, Loader2, Globe, Settings, Zap, Link as LinkIcon, User, Building2, Mail, Phone, MapPin, ShoppingCart, Coins } from 'lucide-react';
 
 interface EditClientModalProps {
   isOpen: boolean;
@@ -10,10 +10,12 @@ interface EditClientModalProps {
   client: any | null;
 }
 
+const ECOMMERCE_MODULE = 'ECOMMERCE_INTEGRATION';
+
 export default function EditClientModal({ isOpen, onClose, onSuccess, client }: EditClientModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'profile' | 'config'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'config' | 'modules'>('profile');
 
   const [formData, setFormData] = useState({
     ownerName: '',
@@ -21,6 +23,9 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
     phoneNumber: '',
     address: '',
     email: '',
+    currency: 'PKR',
+      monthlyRate: '',
+      installationCharge: '',
     instanceName: '',
     evolutionApiUrl: '',
     evolutionApiKey: '',
@@ -28,6 +33,10 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
     status: 'ACTIVE',
     paymentStatus: 'UNPAID'
   });
+
+  const [enabledModules, setEnabledModules] = useState<string[]>([]);
+  const [moduleSaving, setModuleSaving] = useState(false);
+  const [moduleError, setModuleError] = useState('');
 
   useEffect(() => {
     if (client) {
@@ -37,6 +46,9 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
         phoneNumber: client.phone || client.phoneNumber || '',
         address: client.address || '',
         email: client.email || '',
+        currency: client.currency || 'PKR',
+          monthlyRate: (client.monthlyRate !== undefined && client.monthlyRate !== null) ? String(client.monthlyRate) : '',
+          installationCharge: (client.installationCharge !== undefined && client.installationCharge !== null) ? String(client.installationCharge) : '',
         instanceName: client.instanceName || '',
         evolutionApiUrl: client.evolutionApiUrl || '',
         evolutionApiKey: client.evolutionApiKey || '',
@@ -44,6 +56,8 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
         status: client.status || 'ACTIVE',
         paymentStatus: client.paymentStatus || 'UNPAID'
       });
+      setEnabledModules(client.enabledModules || []);
+      setModuleError('');
       setActiveTab('profile');
       setError('');
     }
@@ -56,7 +70,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!client) return;
-    
+
     setError('');
     setLoading(true);
 
@@ -86,12 +100,45 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
     }
   };
 
+  const handleToggleModule = async (moduleKey: string, enabled: boolean) => {
+    if (!client) return;
+
+    setModuleSaving(true);
+    setModuleError('');
+
+    try {
+      const token = localStorage.getItem('crm_token');
+      const response = await fetch(`http://2.24.212.209/api/admin/clients/${client.id}/modules`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ module: moduleKey, enabled }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update module access');
+      }
+
+      setEnabledModules(data.enabledModules || []);
+    } catch (err: any) {
+      setModuleError(err.message);
+    } finally {
+      setModuleSaving(false);
+    }
+  };
+
   if (!isOpen || !client) return null;
+
+  const ecommerceEnabled = enabledModules.includes(ECOMMERCE_MODULE);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        
+
         {/* Header */}
         <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
@@ -107,17 +154,23 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
 
         {/* Tabs */}
         <div className="flex border-b border-gray-100 px-8 bg-gray-50/30">
-          <button 
+          <button
             onClick={() => setActiveTab('profile')}
             className={`px-6 py-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'profile' ? 'border-[#d51381] text-[#d51381]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Business Profile
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('config')}
             className={`px-6 py-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'config' ? 'border-[#d51381] text-[#d51381]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Technical Config
+          </button>
+          <button
+            onClick={() => setActiveTab('modules')}
+            className={`px-6 py-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'modules' ? 'border-[#d51381] text-[#d51381]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Modules
           </button>
         </div>
 
@@ -138,7 +191,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Owner Name</label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400" />
-                      <input 
+                      <input
                         type="text" required name="ownerName" value={formData.ownerName} onChange={handleChange}
                         className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none"
                       />
@@ -148,20 +201,20 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Company Name</label>
                     <div className="relative">
                       <Building2 className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400" />
-                      <input 
+                      <input
                         type="text" required name="companyName" value={formData.companyName} onChange={handleChange}
                         className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none"
                       />
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-5">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400" />
-                      <input 
+                      <input
                         type="email" required name="email" value={formData.email} onChange={handleChange}
                         className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none"
                       />
@@ -171,7 +224,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Phone Number</label>
                     <div className="relative">
                       <Phone className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400" />
-                      <input 
+                      <input
                         type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange}
                         className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none"
                       />
@@ -183,17 +236,56 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Business Address</label>
                   <div className="relative">
                     <MapPin className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400" />
-                    <input 
+                    <input
                       type="text" name="address" value={formData.address} onChange={handleChange}
                       className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none"
                     />
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Currency</label>
+                  <div className="relative">
+                    <Coins className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400" />
+                    <select
+                      name="currency" value={formData.currency} onChange={handleChange}
+                      className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none font-medium bg-white appearance-none"
+                    >
+                      <option value="PKR">PKR — Pakistani Rupee (Rs)</option>
+                      <option value="GBP">GBP — British Pound (£)</option>
+                      <option value="USD">USD — US Dollar ($)</option>
+                      <option value="EUR">EUR — Euro (€)</option>
+                      <option value="AED">AED — UAE Dirham</option>
+                      <option value="SAR">SAR — Saudi Riyal</option>
+                      <option value="INR">INR — Indian Rupee (₹)</option>
+                    </select>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2 font-medium">Currency the bot quotes prices in (WhatsApp replies) and invoices are generated in for this client.</p>
+                </div>
+
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Monthly Rate ({formData.currency})</label>
+                      <input
+                        type="number" step="0.01" name="monthlyRate" value={formData.monthlyRate} onChange={handleChange}
+                        placeholder="e.g. 15000"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Installation Charge ({formData.currency})</label>
+                      <input
+                        type="number" step="0.01" name="installationCharge" value={formData.installationCharge} onChange={handleChange}
+                        placeholder="e.g. 5000 (one-time, optional)"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none"
+                      />
+                    </div>
+                  </div>
+
                 <div className="grid grid-cols-2 gap-5 pt-4 border-t border-gray-100">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Account Status</label>
-                    <select 
+                    <select
                       name="status" value={formData.status} onChange={handleChange}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none font-medium bg-white appearance-none"
                     >
@@ -204,7 +296,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Payment Status</label>
-                    <select 
+                    <select
                       name="paymentStatus" value={formData.paymentStatus} onChange={handleChange}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] focus:ring-1 focus:ring-[#0a1142] outline-none font-medium bg-white appearance-none"
                     >
@@ -231,7 +323,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Instance Name</label>
                   <div className="relative">
                     <Globe className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400" />
-                    <input 
+                    <input
                       type="text" required name="instanceName" value={formData.instanceName} onChange={handleChange}
                       className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] outline-none font-mono text-sm"
                     />
@@ -241,14 +333,14 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Evolution URL</label>
-                    <input 
+                    <input
                       type="text" required name="evolutionApiUrl" value={formData.evolutionApiUrl} onChange={handleChange}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] outline-none text-sm"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Evolution Global API Key</label>
-                    <input 
+                    <input
                       type="text" required name="evolutionApiKey" value={formData.evolutionApiKey} onChange={handleChange}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] outline-none text-sm"
                     />
@@ -259,7 +351,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">n8n Webhook URL</label>
                   <div className="relative">
                     <LinkIcon className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400" />
-                    <input 
+                    <input
                       type="url" name="n8nWebhookUrl" value={formData.n8nWebhookUrl} onChange={handleChange} placeholder="https://..."
                       className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#0a1142] outline-none font-mono text-sm text-blue-600"
                     />
@@ -268,27 +360,84 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                 </div>
               </div>
             )}
+
+            {activeTab === 'modules' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <div className="bg-blue-50 p-4 rounded-xl flex items-start space-x-3 border border-blue-100">
+                  <Zap className="w-5 h-5 text-blue-500 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-900">Feature Access</h4>
+                    <p className="text-xs text-blue-700 mt-1">
+                      Turn optional modules on or off for this client. Changes apply immediately — there is no separate save step.
+                    </p>
+                  </div>
+                </div>
+
+                {moduleError && (
+                  <div className="p-4 rounded-xl bg-red-50 text-red-600 border border-red-100 text-sm font-medium flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
+                    {moduleError}
+                  </div>
+                )}
+
+                <div className="flex items-start justify-between gap-4 p-5 border border-gray-200 rounded-2xl">
+                  <div className="flex items-start space-x-3">
+                    <div className="mt-0.5 w-9 h-9 rounded-xl bg-[#0a1142]/5 flex items-center justify-center flex-shrink-0">
+                      <ShoppingCart className="w-4.5 h-4.5 text-[#0a1142]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-[#0a1142]">E-commerce Integration</h4>
+                      <p className="text-xs text-gray-500 mt-1 max-w-sm">
+                        Lets this client connect their own store (any platform) so new orders send a WhatsApp
+                        confirmation to the customer, and a &quot;Yes&quot; reply marks the order confirmed on their site.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={moduleSaving}
+                    onClick={() => handleToggleModule(ECOMMERCE_MODULE, !ecommerceEnabled)}
+                    className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${ecommerceEnabled ? 'bg-[#0a1142]' : 'bg-gray-300'}`}
+                    aria-pressed={ecommerceEnabled}
+                    aria-label="Toggle E-commerce Integration"
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${ecommerceEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                    />
+                  </button>
+                </div>
+
+                {moduleSaving && (
+                  <p className="text-xs text-gray-400 font-medium flex items-center">
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Updating...
+                  </p>
+                )}
+              </div>
+            )}
           </form>
         </div>
 
         {/* Footer */}
         <div className="px-8 py-5 border-t border-gray-100 bg-gray-50/50 flex justify-end space-x-3">
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={onClose}
             className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition-colors"
           >
-            Cancel
+            {activeTab === 'modules' ? 'Close' : 'Cancel'}
           </button>
-          <button 
-            type="submit" 
-            form="edit-client-form"
-            disabled={loading}
-            className="flex items-center px-8 py-2.5 bg-[#0a1142] hover:bg-[#131b54] text-white font-bold rounded-xl transition-colors disabled:opacity-70"
-          >
-            {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Check className="w-5 h-5 mr-2" />}
-            Save Changes
-          </button>
+          {activeTab !== 'modules' && (
+            <button
+              type="submit"
+              form="edit-client-form"
+              disabled={loading}
+              className="flex items-center px-8 py-2.5 bg-[#0a1142] hover:bg-[#131b54] text-white font-bold rounded-xl transition-colors disabled:opacity-70"
+            >
+              {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Check className="w-5 h-5 mr-2" />}
+              Save Changes
+            </button>
+          )}
         </div>
       </div>
     </div>

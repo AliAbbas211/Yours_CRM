@@ -17,6 +17,7 @@ import contactRoutes from './routes/contactRoutes';
 import invoiceRoutes from './routes/invoiceRoutes';
 import botRoutes from './routes/botRoutes';
 import internalRoutes from './routes/internalRoutes';
+import ecommerceRoutes from './routes/ecommerceRoutes';
 
 import { startScheduleService } from './services/scheduleService';
 import './cron/subscriptionExpiry';
@@ -46,6 +47,7 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/invoice', invoiceRoutes);
 app.use('/api/bot', botRoutes); // n8n-facing: /api/bot/context, /api/bot/check-whitelist, /api/bot/product-lookup
 app.use('/api/internal', internalRoutes);
+app.use('/api/webhooks/ecommerce', ecommerceRoutes); // PUBLIC — client e-commerce sites call this to create orders
 
 startScheduleService();
 

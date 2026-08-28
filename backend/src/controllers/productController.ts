@@ -3,13 +3,17 @@ import prismaClient from '../prismaClient';
 const prisma = prismaClient as any;
 import { uploadBufferToCloudinary, deleteFromCloudinary } from '../services/cloudinaryService';
 
-// Resolves the effective clientId whether the caller is a CLIENT user
-// (scoped to their own client) or a SUPER_ADMIN/MANAGER acting on behalf
-// of a specific client (passed as ?clientId= or in the body).
 const resolveClientId = (req: Request): string | null => {
   const user = (req as any).user;
   if (user?.role === 'CLIENT') return user.clientId;
   return (req.query.clientId as string) || req.body.clientId || null;
+};
+
+const parseOptionalFloat = (value: any): number | null | undefined => {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const n = parseFloat(value);
+  return Number.isNaN(n) ? undefined : n;
 };
 
 export const createProduct = async (req: Request, res: Response) => {
@@ -17,7 +21,7 @@ export const createProduct = async (req: Request, res: Response) => {
     const clientId = resolveClientId(req);
     if (!clientId) return res.status(400).json({ message: 'clientId is required' });
 
-    const { name, description, price, category } = req.body;
+    const { name, description, price, category, lastPrice } = req.body;
     if (!name || price === undefined) {
       return res.status(400).json({ message: 'name and price are required' });
     }
@@ -43,6 +47,7 @@ export const createProduct = async (req: Request, res: Response) => {
         name,
         description: description || null,
         price: parseFloat(price),
+        lastPrice: parseOptionalFloat(lastPrice) ?? null,
         category: category || null,
         images,
         videos,
@@ -102,13 +107,12 @@ export const updateProduct = async (req: Request, res: Response) => {
     const existing = await prisma.product.findFirst({ where: { id, clientId } as any });
     if (!existing) return res.status(404).json({ message: 'Product not found' });
 
-    const { name, description, price, category, isActive, removeExistingMedia } = req.body;
+    const { name, description, price, category, isActive, removeExistingMedia, lastPrice } = req.body;
     const files = (req.files as Express.Multer.File[]) || [];
 
     let images = (existing as any).images as string[];
     let videos = (existing as any).videos as string[];
 
-    // If the client explicitly wants to replace all media
     if (removeExistingMedia === 'true' || removeExistingMedia === true) {
       for (const url of [...images, ...videos]) {
         await deleteFromCloudinary(url);
@@ -139,6 +143,7 @@ export const updateProduct = async (req: Request, res: Response) => {
         images,
         videos,
         price: price !== undefined ? parseFloat(price) : undefined,
+        lastPrice: parseOptionalFloat(lastPrice),
         isActive: isActive !== undefined ? isActive === 'true' || isActive === true : undefined,
       } as any,
     });
@@ -170,12 +175,6 @@ export const deleteProduct = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * PUBLIC (internal) endpoint for n8n — resolves a product mentioned by
- * approximate name to its exact record, so the bot can double check
- * media URLs / prices even if the system-prompt catalog snapshot is stale.
- * GET /api/bot/product-lookup?instance=xxx&name=xxx
- */
 export const lookupProductForBot = async (req: Request, res: Response) => {
   try {
     const { instance, name } = req.query as { instance: string; name: string };

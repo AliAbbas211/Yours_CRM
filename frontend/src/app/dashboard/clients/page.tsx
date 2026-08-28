@@ -6,6 +6,14 @@ import AddClientModal from '@/components/AddClientModal';
 import EditClientModal from '@/components/EditClientModal';
 import Client360Modal from '../../../components/Client360Modal';
 
+interface SubscriptionPaymentData {
+  id: string;
+  amount: number;
+  periodLabel?: string | null;
+  note?: string | null;
+  paidAt: string;
+}
+
 interface Client {
   id: string;
   ownerName?: string;
@@ -14,6 +22,21 @@ interface Client {
   email?: string;
   phoneNumber?: string;
   status?: string;
+  n8nWebhookUrl?: string;
+  evolutionApiUrl?: string;
+  evolutionApiKey?: string;
+  originLat?: number;
+  originLng?: number;
+  amountCharged?: number;
+  paymentStatus?: string;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
+  currency?: string;
+  _count?: {
+    knowledgeBases?: number;
+    leads?: number;
+  };
+  subscriptionPayments?: SubscriptionPaymentData[];
   agentConfig?: {
     disabledBySuperAdmin?: boolean;
     scheduleEnabled?: boolean;
@@ -41,26 +64,27 @@ export default function ClientsPage() {
       if (response.ok) {
         const data: Client[] = await response.json();
         setClients(data);
-        // Keep the currently-open 360 modal in sync with fresh data
-        if (selectedClient) {
-          const updated = data.find((c) => c.id === selectedClient.id);
-          if (updated) setSelectedClient(updated);
-        }
       }
     } catch (error) {
       console.error('Failed to fetch clients', error);
     } finally {
       setLoading(false);
     }
-  }, [selectedClient]);
+  }, []);
 
   useEffect(() => {
-    const loadClients = async () => {
-      await fetchClients();
-    };
-
-    void loadClients();
+    void fetchClients();
   }, [fetchClients]);
+
+  // Keep an already-open 360 view in sync with freshly fetched data,
+  // without ever re-opening it after the user has closed it.
+  useEffect(() => {
+    setSelectedClient((current) => {
+      if (!current) return current;
+      const updated = clients.find((c) => c.id === current.id);
+      return updated || current;
+    });
+  }, [clients]);
 
   const deleteClient = async (id: string) => {
     if (!confirm('Are you sure you want to delete this client?')) return;
@@ -231,6 +255,18 @@ export default function ClientsPage() {
                     ? selectedClient.status
                     : 'ACTIVE',
                 agentConfig: selectedClient.agentConfig || undefined,
+                n8nWebhookUrl: selectedClient.n8nWebhookUrl,
+                evolutionApiUrl: selectedClient.evolutionApiUrl,
+                evolutionApiKey: selectedClient.evolutionApiKey,
+                originLat: selectedClient.originLat,
+                originLng: selectedClient.originLng,
+                amountCharged: selectedClient.amountCharged,
+                paymentStatus: selectedClient.paymentStatus,
+                subscriptionStartDate: selectedClient.subscriptionStartDate,
+                subscriptionEndDate: selectedClient.subscriptionEndDate,
+                currency: selectedClient.currency,
+                _count: selectedClient._count,
+                subscriptionPayments: selectedClient.subscriptionPayments,
               }
             : null
         }

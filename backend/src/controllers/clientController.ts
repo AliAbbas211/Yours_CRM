@@ -10,7 +10,7 @@ export const createClient = async (req: Request, res: Response) => {
     const {
       companyName, ownerName, email, phoneNumber, address, password,
       instanceName, evolutionApiUrl, evolutionApiKey, initialKnowledgeBase,
-      originLat, originLng, originAddress
+      originLat, originLng, originAddress, currency, monthlyRate, installationCharge
     } = req.body;
 
     if (!email || !password || !companyName || !ownerName || !instanceName) {
@@ -59,6 +59,9 @@ export const createClient = async (req: Request, res: Response) => {
           email,
           phoneNumber,
           address,
+          currency: currency || 'PKR',
+            monthlyRate: monthlyRate !== undefined && monthlyRate !== null && monthlyRate !== '' ? parseFloat(monthlyRate) : undefined,
+            installationCharge: installationCharge !== undefined && installationCharge !== null && installationCharge !== '' ? parseFloat(installationCharge) : undefined,
           subscriptionStartDate: startDate,
           subscriptionEndDate: endDate,
           subscriptionDays: 30,
@@ -133,7 +136,9 @@ export const getClients = async (req: Request, res: Response) => {
           select: { leads: true, knowledgeBases: true, products: true }
         },
         // @ts-ignore
-        agentConfig: true
+        agentConfig: true,
+        // @ts-ignore
+        subscriptionPayments: { orderBy: { paidAt: 'desc' } }
       } as any
     });
     res.json(clients);
@@ -153,7 +158,9 @@ export const getClientById = async (req: Request, res: Response) => {
           select: { leads: true, knowledgeBases: true, products: true }
         },
         // @ts-ignore
-        agentConfig: true
+        agentConfig: true,
+        // @ts-ignore
+        subscriptionPayments: { orderBy: { paidAt: 'desc' } }
       } as any
     });
 
@@ -175,6 +182,8 @@ export const updateClient = async (req: Request, res: Response) => {
 
     if (updates.originLat !== undefined) updates.originLat = parseFloat(updates.originLat);
     if (updates.originLng !== undefined) updates.originLng = parseFloat(updates.originLng);
+      if (updates.monthlyRate !== undefined) updates.monthlyRate = (updates.monthlyRate === '' || updates.monthlyRate === null) ? null : parseFloat(updates.monthlyRate);
+      if (updates.installationCharge !== undefined) updates.installationCharge = (updates.installationCharge === '' || updates.installationCharge === null) ? null : parseFloat(updates.installationCharge);
 
     // These belong to AgentConfig, not Client — strip them out if present
     // so `prisma.client.update` doesn't throw on unknown fields.
@@ -211,6 +220,63 @@ export const deleteClient = async (req: Request, res: Response) => {
   }
 };
 
+export const recordClientPayment = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const { amount, periodLabel, note, extendDays } = req.body;
+
+    const parsedAmount = parseFloat(amount);
+    if (amount === undefined || amount === null || isNaN(parsedAmount)) {
+      return res.status(400).json({ message: 'A valid amount is required' });
+    }
+
+    const client = await prisma.client.findUnique({ where: { id } });
+    if (!client) return res.status(404).json({ message: 'Client not found' });
+
+    const days = extendDays !== undefined && extendDays !== null && extendDays !== ''
+      ? parseInt(extendDays)
+      : (client.subscriptionDays || 30);
+
+    const baseDate = client.subscriptionEndDate && new Date(client.subscriptionEndDate) > new Date()
+      ? new Date(client.subscriptionEndDate)
+      : new Date();
+    const newEndDate = new Date(baseDate);
+    newEndDate.setDate(newEndDate.getDate() + (isNaN(days) ? 30 : days));
+
+    const payment = await prismaAny.subscriptionPayment.create({
+      data: {
+        clientId: id,
+        amount: parsedAmount,
+        periodLabel: periodLabel || undefined,
+        note: note || undefined
+      }
+    });
+
+    const updatedClient = await prisma.client.update({
+      where: { id },
+      data: {
+        amountCharged: parsedAmount,
+        paymentStatus: 'PAID',
+        subscriptionEndDate: newEndDate,
+        status: 'ACTIVE'
+      } as any
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: (req as any).user?.userId,
+        action: 'CLIENT_PAYMENT_RECORDED',
+        details: `Payment of ${parsedAmount} recorded for client ${id}; subscription extended to ${newEndDate.toISOString()}.`
+      }
+    });
+
+    res.json({ payment, client: updatedClient });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export const getClientSettings = async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).user?.clientId;
@@ -233,6 +299,47 @@ export const getClientSettings = async (req: Request, res: Response) => {
   }
 };
 
+export const getClientBilling = async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).user?.clientId;
+    if (!clientId) return res.status(403).json({ message: 'Client ID required' });
+
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) return res.status(404).json({ message: 'Client not found' });
+
+    const payments = await prismaAny.subscriptionPayment.findMany({
+      where: { clientId },
+      orderBy: { paidAt: 'desc' }
+    });
+
+    const now = new Date();
+    const start = client.subscriptionStartDate ? new Date(client.subscriptionStartDate) : null;
+    const end = client.subscriptionEndDate ? new Date(client.subscriptionEndDate) : null;
+
+    const monthsOnboard = start
+      ? Math.max(0, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()))
+      : null;
+    const daysUntilExpiry = end
+      ? Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    res.json({
+      subscriptionStartDate: client.subscriptionStartDate,
+      subscriptionEndDate: client.subscriptionEndDate,
+      monthsOnboard,
+      daysUntilExpiry,
+      amountCharged: client.amountCharged,
+      paymentStatus: client.paymentStatus,
+      status: client.status,
+      currency: (client as any).currency || 'PKR',
+      payments
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export const updateClientSettings = async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).user?.clientId;
@@ -241,16 +348,12 @@ export const updateClientSettings = async (req: Request, res: Response) => {
     const {
       companyName, ownerName, phoneNumber, address, defaultAiModel, defaultPrompt,
       isActive, scheduleEnabled, scheduleStartTime, scheduleEndTime, timezone,
-      originLat, originLng, originAddress
+      originLat, originLng, originAddress,
+      botName, botDesignation, botRole, botJobDescription
     } = req.body;
 
-    // --- SUPER ADMIN KILL SWITCH GUARD ---
-    // If the super admin has disabled this client's bot, the client cannot
-    // flip isActive back to true from their own portal. Any other setting
-    // (company profile, KB, schedule times) can still be changed freely —
-    // only re-ENABLING the bot itself is blocked.
     if (isActive === true) {
-      const currentConfig = await prisma.agentConfig.findUnique({ where: { id: clientId } as any });
+      const currentConfig = await prisma.agentConfig.findUnique({ where: { clientId } as any });
       if ((currentConfig as any)?.disabledBySuperAdmin) {
         return res.status(403).json({
           message: 'Your AI agent has been disabled by the administrator and cannot be re-enabled from here. Please contact support.'
@@ -275,23 +378,30 @@ export const updateClientSettings = async (req: Request, res: Response) => {
 
     // @ts-ignore
     const updatedAgentConfig = await prisma.agentConfig.upsert({
-      where: { id: clientId },
+      where: { clientId } as any,
       update: {
         isActive: isActive !== undefined ? isActive : undefined,
         scheduleEnabled: scheduleEnabled !== undefined ? scheduleEnabled : undefined,
         scheduleStartTime,
         scheduleEndTime,
-        timezone
-      },
+        timezone,
+        botName: botName !== undefined ? botName : undefined,
+        botDesignation: botDesignation !== undefined ? botDesignation : undefined,
+        botRole: botRole !== undefined ? botRole : undefined,
+        botJobDescription: botJobDescription !== undefined ? botJobDescription : undefined,
+      } as any,
       create: {
-        id: clientId,
-        client: { connect: { id: clientId } },
+        clientId,
         isActive: isActive !== undefined ? isActive : true,
         scheduleEnabled: scheduleEnabled !== undefined ? scheduleEnabled : false,
         scheduleStartTime,
         scheduleEndTime,
-        timezone
-      }
+        timezone,
+        botName,
+        botDesignation,
+        botRole,
+        botJobDescription,
+      } as any
     });
     res.json({ ...updatedClient, agentConfig: updatedAgentConfig });
   } catch (error) {
@@ -319,7 +429,7 @@ export const getClientDashboardStats = async (req: Request, res: Response) => {
 
     // @ts-ignore
     const agentConfig = await prisma.agentConfig.findUnique({
-      where: { id: clientId }
+      where: { clientId } as any
     });
 
     res.json({
@@ -339,12 +449,6 @@ export const getClientDashboardStats = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Auto-detects lat/lng for the client's business address using Google
- * Geocoding, and saves it as the origin point used for delivery-distance
- * calculations on every order. Call this from the Settings page whenever
- * the client sets/changes their address.
- */
 export const geocodeOriginAddress = async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).user?.clientId;

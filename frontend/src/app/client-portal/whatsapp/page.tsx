@@ -63,9 +63,9 @@ export default function WhatsAppPage() {
       const token = localStorage.getItem('crm_token');
       const res = await fetch('http://2.24.212.209/api/clients/portal/settings', {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           scheduleEnabled,
@@ -160,13 +160,13 @@ export default function WhatsAppPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-xl w-fit">
-        <button 
+        <button
           onClick={() => setActiveTab('config')}
           className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'config' ? 'bg-white text-[#0a1142] shadow-sm' : 'text-gray-500 hover:text-[#0a1142]'}`}
         >
           AI Config
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('scheduling')}
           className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'scheduling' ? 'bg-white text-[#0a1142] shadow-sm' : 'text-gray-500 hover:text-[#0a1142]'}`}
         >
@@ -183,7 +183,7 @@ export default function WhatsAppPage() {
           </h3>
           <div className="flex items-center space-x-4">
             <span className="text-emerald-600 font-bold text-sm">{scheduleMessage}</span>
-            <button 
+            <button
               onClick={saveSchedule}
               disabled={savingSchedule}
               className="bg-[#0a1142] hover:bg-[#131b54] text-white px-6 py-2 rounded-xl font-bold transition-all disabled:opacity-70 text-sm"
@@ -192,9 +192,9 @@ export default function WhatsAppPage() {
             </button>
           </div>
         </div>
-        
+
         <div className="mb-6 flex items-center space-x-3">
-          <input 
+          <input
             type="checkbox"
             checked={scheduleEnabled}
             onChange={(e) => setScheduleEnabled(e.target.checked)}
@@ -210,7 +210,7 @@ export default function WhatsAppPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-gray-50 border border-gray-100 rounded-xl">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Timezone</label>
-              <select 
+              <select
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#d51381] outline-none font-medium bg-white"
@@ -223,6 +223,7 @@ export default function WhatsAppPage() {
                 <option value="Europe/London">London (GMT/BST)</option>
                 <option value="Europe/Paris">Central European Time (CET)</option>
                 <option value="Asia/Dubai">Gulf Standard Time (GST)</option>
+                <option value="Asia/Karachi">Pakistan Standard Time (PKT)</option>
                 <option value="Asia/Kolkata">India Standard Time (IST)</option>
                 <option value="Asia/Singapore">Singapore (SGT)</option>
                 <option value="Australia/Sydney">Australian Eastern (AET)</option>
@@ -230,8 +231,8 @@ export default function WhatsAppPage() {
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Start Time (24h)</label>
-              <input 
-                type="time" 
+              <input
+                type="time"
                 value={scheduleStartTime}
                 onChange={(e) => setScheduleStartTime(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#d51381] outline-none font-medium bg-white"
@@ -239,8 +240,8 @@ export default function WhatsAppPage() {
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">End Time (24h)</label>
-              <input 
-                type="time" 
+              <input
+                type="time"
                 value={scheduleEndTime}
                 onChange={(e) => setScheduleEndTime(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#d51381] outline-none font-medium bg-white"
@@ -256,7 +257,7 @@ export default function WhatsAppPage() {
         {/* Connection Status Card */}
         <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div className="absolute -right-10 -top-10 w-40 h-40 bg-gray-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-8">
               <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100">
@@ -278,7 +279,7 @@ export default function WhatsAppPage() {
 
             <h3 className="text-xl font-bold text-[#0a1142] mb-2">Connection Status</h3>
             <p className="text-gray-500 font-medium mb-6 text-sm">
-              {status === 'ONLINE' 
+              {status === 'ONLINE'
                 ? 'Your WhatsApp number is actively connected to the Evolution API and ready to handle customer leads via AI.'
                 : 'Your WhatsApp number is currently disconnected. Generate a QR code to link your device.'}
             </p>
@@ -286,7 +287,7 @@ export default function WhatsAppPage() {
 
           <div className="relative z-10">
             {status !== 'ONLINE' && (
-              <button 
+              <button
                 onClick={generateQr}
                 disabled={loadingQr}
                 className="w-full bg-[#0a1142] hover:bg-[#131b54] text-white py-3.5 rounded-xl font-bold flex items-center justify-center transition-all disabled:opacity-70 shadow-lg shadow-blue-900/20"
@@ -298,13 +299,13 @@ export default function WhatsAppPage() {
                 ) : 'Generate QR Code'}
               </button>
             )}
-            
+
             {status === 'ONLINE' && (
               <div className="space-y-3">
                 <div className="w-full bg-emerald-50 border border-emerald-100 text-emerald-700 py-3.5 rounded-xl font-bold flex items-center justify-center">
                   <CheckCircle className="w-5 h-5 mr-2" /> Connected Successfully
                 </div>
-                <button 
+                <button
                   onClick={forceDisconnect}
                   className="w-full bg-white border border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-xl font-bold flex items-center justify-center transition-colors text-sm"
                 >

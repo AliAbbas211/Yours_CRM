@@ -51,7 +51,11 @@ export const getLeads = async (req: Request, res: Response) => {
 
     const leads = await prisma.lead.findMany({
       where: { clientId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+        include: {
+          // @ts-ignore
+          _count: { select: { messages: true } }
+        } as any
     });
 
     res.json(leads);

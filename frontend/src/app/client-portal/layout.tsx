@@ -19,6 +19,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
   const [isUpdatingBot, setIsUpdatingBot] = useState(false);
   const [marqueeText, setMarqueeText] = useState('');
   const [bannerMessage, setBannerMessage] = useState('');
+  const [subExpiryBanner, setSubExpiryBanner] = useState<{ message: string; severity: 'warning' | 'critical' } | null>(null);
 
   let pageTitle = 'Client Portal';
   let pageSubtitle = '';
@@ -38,9 +39,9 @@ export default function ClientPortalLayout({ children }: { children: React.React
   } else if (pathname === '/client-portal/products') {
     pageTitle = 'Products';
     pageSubtitle = 'Manage your catalog — images, videos, and prices your bot shows to customers.';
-  } else if (pathname === '/client-portal/contacts') {
-    pageTitle = 'Contacts & Whitelist';
-    pageSubtitle = 'Control exactly which WhatsApp numbers your AI bot is allowed to reply to.';
+  } else if (pathname === '/client-portal/billing') {
+    pageTitle = 'Billing';
+    pageSubtitle = 'Your subscription, renewal date, and payment history.';
   }
 
   useEffect(() => {
@@ -71,6 +72,24 @@ export default function ClientPortalLayout({ children }: { children: React.React
           if (data && data.agentConfig) {
             setBotEnabled(data.agentConfig.isActive !== undefined ? data.agentConfig.isActive : true);
             setBotLockedBySuperAdmin(!!data.agentConfig.disabledBySuperAdmin);
+          }
+          if (data && data.subscriptionEndDate) {
+            const end = new Date(data.subscriptionEndDate);
+            const now = new Date();
+            const daysLeft = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            if (daysLeft <= 10) {
+              setSubExpiryBanner({
+                message:
+                  daysLeft > 1
+                    ? `Your subscription ends in ${daysLeft} days (${end.toLocaleDateString('en-GB')}). Please renew soon to avoid interruption.`
+                    : daysLeft === 1
+                    ? `Your subscription ends tomorrow (${end.toLocaleDateString('en-GB')}). Please renew soon to avoid interruption.`
+                    : daysLeft === 0
+                    ? `Your subscription ends today (${end.toLocaleDateString('en-GB')}). Please renew now to avoid interruption.`
+                    : `Your subscription expired on ${end.toLocaleDateString('en-GB')}. Please renew now to restore uninterrupted service.`,
+                severity: daysLeft <= 3 ? 'critical' : 'warning',
+              });
+            }
           }
         })
         .catch(console.error);
@@ -163,6 +182,18 @@ export default function ClientPortalLayout({ children }: { children: React.React
         {bannerMessage && (
           <div className="bg-red-50 border-b border-red-100 text-red-700 text-sm font-bold px-8 py-2.5">
             {bannerMessage}
+          </div>
+        )}
+
+        {subExpiryBanner && (
+          <div
+            className={`border-b text-sm font-bold px-8 py-2.5 ${
+              subExpiryBanner.severity === 'critical'
+                ? 'bg-red-50 border-red-100 text-red-700'
+                : 'bg-amber-50 border-amber-100 text-amber-800'
+            }`}
+          >
+            {subExpiryBanner.message}
           </div>
         )}
 
