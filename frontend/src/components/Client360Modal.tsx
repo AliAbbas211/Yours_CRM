@@ -82,7 +82,7 @@ export default function Client360Modal({ isOpen, onClose, client, onRefresh }: C
     try {
       const token = localStorage.getItem('crm_token');
       const action = isDisabledBySuperAdmin ? 'enable-bot' : 'disable-bot';
-      const res = await fetch(`http://2.24.212.209/api/admin/clients/${client.id}/${action}`, {
+      const res = await fetch(`/api/admin/clients/${client.id}/${action}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -109,7 +109,7 @@ export default function Client360Modal({ isOpen, onClose, client, onRefresh }: C
     setPaymentMessage('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://2.24.212.209/api/clients/${client.id}/payments`, {
+      const res = await fetch(`/api/clients/${client.id}/payments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

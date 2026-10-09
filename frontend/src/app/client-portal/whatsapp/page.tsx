@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Smartphone, Shield, Wifi, WifiOff, Loader2, RefreshCw, CheckCircle, LogOut } from 'lucide-react';
+import ConnectWhatsAppCloud from '../../../components/ConnectWhatsAppCloud';
 
 export default function WhatsAppPage() {
   const [status, setStatus] = useState<string>('CHECKING');
@@ -41,7 +42,7 @@ export default function WhatsAppPage() {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://2.24.212.209/api/clients/portal/settings', {
+      const res = await fetch('/api/clients/portal/settings', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -61,7 +62,7 @@ export default function WhatsAppPage() {
     setScheduleMessage('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://2.24.212.209/api/clients/portal/settings', {
+      const res = await fetch('/api/clients/portal/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +94,7 @@ export default function WhatsAppPage() {
     try {
       setCheckingStatus(true);
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://2.24.212.209/api/evolution/status/${clientId}`, {
+      const res = await fetch(`/api/evolution/status/${clientId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -118,7 +119,7 @@ export default function WhatsAppPage() {
     try {
       setLoadingQr(true);
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`http://2.24.212.209/api/evolution/connect/${clientId}`, {
+      const res = await fetch(`/api/evolution/connect/${clientId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -146,7 +147,7 @@ export default function WhatsAppPage() {
 
     try {
       const token = localStorage.getItem('crm_token');
-      await fetch(`http://2.24.212.209/api/evolution/logout/${clientId}`, {
+      await fetch(`/api/evolution/logout/${clientId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -251,6 +252,8 @@ export default function WhatsAppPage() {
         )}
       </div>
       )}
+
+      {activeTab === 'config' && <ConnectWhatsAppCloud />}
 
       {activeTab === 'config' && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">

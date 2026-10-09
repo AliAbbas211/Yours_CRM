@@ -35,7 +35,7 @@ export default function SettingsPage() {
     const loadSettings = async () => {
       try {
         const token = localStorage.getItem('crm_token');
-        const res = await fetch('http://2.24.212.209/api/clients/portal/settings', {
+        const res = await fetch('/api/clients/portal/settings', {
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal
         });
@@ -69,7 +69,7 @@ export default function SettingsPage() {
     const loadEcommerceConfig = async () => {
       try {
         const token = localStorage.getItem('crm_token');
-        const res = await fetch('http://2.24.212.209/api/clients/portal/ecommerce-config', {
+        const res = await fetch('/api/clients/portal/ecommerce-config', {
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal
         });
@@ -104,7 +104,7 @@ export default function SettingsPage() {
     setMessage('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://2.24.212.209/api/clients/portal/settings', {
+      const res = await fetch('/api/clients/portal/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ export default function SettingsPage() {
     setGeocodeMessage('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://2.24.212.209/api/clients/portal/geocode-origin', {
+      const res = await fetch('/api/clients/portal/geocode-origin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -171,7 +171,7 @@ export default function SettingsPage() {
     setEcommerceMessage('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://2.24.212.209/api/clients/portal/ecommerce-config', {
+      const res = await fetch('/api/clients/portal/ecommerce-config', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -198,7 +198,7 @@ export default function SettingsPage() {
     setEcommerceMessage('');
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://2.24.212.209/api/clients/portal/ecommerce-config/regenerate-secret', {
+      const res = await fetch('/api/clients/portal/ecommerce-config/regenerate-secret', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });

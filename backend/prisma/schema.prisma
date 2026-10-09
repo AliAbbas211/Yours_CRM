@@ -91,6 +91,15 @@ model Client {
   evolutionApiUrl String?
   evolutionApiKey String?
   n8nWebhookUrl   String?
+  // WhatsApp Cloud API (Meta Embedded Signup)
+  waProvider          String? // "CLOUD" when connected through Meta Embedded Signup
+  waBusinessAccountId String?
+  waPhoneNumberId     String?
+  waAccessToken       String?
+  waPin               String?
+  waPhoneDisplay      String?
+  waVerifiedName      String?
+  waConnectedAt       DateTime?
   // AI Config
   defaultAiModel String  @default("gemini-2.5-flash")
   defaultPrompt  String?

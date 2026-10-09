@@ -15,7 +15,7 @@ export default function ClientDashboard() {
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch('http://2.24.212.209/api/clients/portal/dashboard', {
+      const res = await fetch('/api/clients/portal/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {

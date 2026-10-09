@@ -76,7 +76,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
 
     try {
       const token = localStorage.getItem('crm_token');
-      const response = await fetch(`http://2.24.212.209/api/clients/${client.id}`, {
+      const response = await fetch(`/api/clients/${client.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
 
     try {
       const token = localStorage.getItem('crm_token');
-      const response = await fetch(`http://2.24.212.209/api/admin/clients/${client.id}/modules`, {
+      const response = await fetch(`/api/admin/clients/${client.id}/modules`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

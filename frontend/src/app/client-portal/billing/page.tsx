@@ -33,7 +33,7 @@ export default function BillingPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('crm_token');
-    fetch('http://2.24.212.209/api/clients/portal/billing', {
+    fetch('/api/clients/portal/billing', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then((res) => res.json())
