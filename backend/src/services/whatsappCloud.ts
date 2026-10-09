@@ -46,6 +46,11 @@ export async function registerPhone(phoneNumberId: string, token: string, pin: s
   return res.data;
 }
 
+export async function syncSmbData(phoneNumberId: string, token: string, syncType: string) {
+  const res = await axios.post(`${GRAPH}/${phoneNumberId}/smb_app_data`, { messaging_product: 'whatsapp', sync_type: syncType }, { headers: auth(token), timeout: 20000 });
+  return res.data;
+}
+
 // Normalise a phone number to digits only (WhatsApp Cloud API wants e.g. 923001234567).
 export const toWaNumber = (n: string) => String(n || '').replace(/\D/g, '');
 

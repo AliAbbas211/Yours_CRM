@@ -9,6 +9,7 @@ import {
   subscribeApp,
   unsubscribeApp,
   registerPhone,
+  syncSmbData,
   sendText,
   sendMedia,
   MediaKind,
@@ -27,7 +28,7 @@ const resolveClientId = (req: AuthRequest): string | null => {
 export const connectCloud = async (req: AuthRequest, res: Response) => {
   try {
     const clientId = resolveClientId(req);
-    const { code, wabaId, phoneNumberId } = req.body || {};
+    const { code, wabaId, phoneNumberId, coexistence } = req.body || {};
     if (!clientId) return res.status(400).json({ error: 'No client for this user' });
     if (!code || !wabaId || !phoneNumberId) {
       return res.status(400).json({ error: 'code, wabaId and phoneNumberId are required' });
@@ -45,7 +46,13 @@ export const connectCloud = async (req: AuthRequest, res: Response) => {
     // Register the number on Cloud API (needed for numbers added through Embedded Signup).
     const pin = String(Math.floor(100000 + Math.random() * 900000));
     try {
-      await registerPhone(String(phoneNumberId), token, pin);
+      if (coexistence) {
+        for (const t of ['smb_app_state_sync', 'history']) {
+          try { await syncSmbData(String(phoneNumberId), token, t); } catch (e: any) { console.error('smb sync', t, e.response?.data || e.message); }
+        }
+      } else {
+        await registerPhone(String(phoneNumberId), token, pin);
+      }
     } catch (e: any) {
       console.error('registerPhone failed (may already be registered):', e.response?.data || e.message);
     }
@@ -64,7 +71,7 @@ export const connectCloud = async (req: AuthRequest, res: Response) => {
         waBusinessAccountId: String(wabaId),
         waPhoneNumberId: String(phoneNumberId),
         waAccessToken: token,
-        waPin: pin,
+        waPin: coexistence ? null : pin,
         waPhoneDisplay: phone.display_phone_number || null,
         waVerifiedName: phone.verified_name || null,
         waConnectedAt: new Date(),

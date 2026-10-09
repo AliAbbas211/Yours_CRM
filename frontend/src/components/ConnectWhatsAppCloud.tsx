@@ -32,7 +32,7 @@ export default function ConnectWhatsAppCloud() {
   const [status, setStatus] = useState<CloudStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const sessionRef = useRef<{ waba_id?: string; phone_number_id?: string } | null>(null);
+  const sessionRef = useRef<{ waba_id?: string; phone_number_id?: string; coex?: boolean } | null>(null);
 
   // Test message box
   const [testTo, setTestTo] = useState('');
@@ -79,7 +79,7 @@ export default function ConnectWhatsAppCloud() {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (data?.type !== 'WA_EMBEDDED_SIGNUP') return;
         if (data.event === 'FINISH' || data.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
-          sessionRef.current = data.data || {};
+          sessionRef.current = { ...(data.data || {}), coex: data.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' };
         } else if (data.event === 'CANCEL') {
           setBusy(false);
           setError('Signup was cancelled before it finished.');
@@ -106,7 +106,7 @@ export default function ConnectWhatsAppCloud() {
       const res = await fetch('/api/whatsapp-cloud/connect', {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ code, wabaId: info.waba_id, phoneNumberId: info.phone_number_id }),
+        body: JSON.stringify({ code, wabaId: info.waba_id, phoneNumberId: info.phone_number_id, coexistence: !!info.coex }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -121,7 +121,7 @@ export default function ConnectWhatsAppCloud() {
     }
   };
 
-  const launchSignup = () => {
+  const launchSignup = (coex = false) => {
     setError('');
     setSendResult('');
     if (!window.FB) {
@@ -143,7 +143,7 @@ export default function ConnectWhatsAppCloud() {
         config_id: META_CONFIG_ID,
         response_type: 'code',
         override_default_response_type: true,
-        extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
+        extras: { setup: {}, featureType: coex ? 'whatsapp_business_app_onboarding' : '', sessionInfoVersion: '3' },
       },
     );
   };
@@ -201,13 +201,14 @@ export default function ConnectWhatsAppCloud() {
             Yours CRM only gets permission to send and receive WhatsApp messages for that number.
           </p>
           <button
-            onClick={launchSignup}
+            onClick={() => launchSignup(false)}
             disabled={busy || !sdkReady}
             className="bg-[#0a1142] hover:bg-[#131b54] text-white px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-60 flex items-center"
           >
             {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             {busy ? 'Connecting...' : 'Connect WhatsApp'}
           </button>
+          <button onClick={() => launchSignup(true)} disabled={busy || !sdkReady} className="mt-3 border border-[#0a1142] text-[#0a1142] px-6 py-3 rounded-xl font-bold disabled:opacity-60">Connect existing WhatsApp Business app number</button>
         </div>
       )}
 
