@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import axios from 'axios';
 import prisma from '../prismaClient';
 const prismaAny = prisma as any;
 import { geocodeAddress } from '../services/geocodingService';
@@ -9,11 +8,11 @@ export const createClient = async (req: Request, res: Response) => {
   try {
     const {
       companyName, ownerName, email, phoneNumber, address, password,
-      instanceName, evolutionApiUrl, evolutionApiKey, initialKnowledgeBase,
+      instanceName: reqInstanceName, initialKnowledgeBase,
       originLat, originLng, originAddress, currency, monthlyRate, installationCharge
     } = req.body;
 
-    if (!email || !password || !companyName || !ownerName || !instanceName) {
+    if (!email || !password || !companyName || !ownerName) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -22,28 +21,10 @@ export const createClient = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
 
-    let evolutionData: any = null;
-    try {
-      const evoResponse = await axios.post(
-        `${evolutionApiUrl}/instance/create`,
-        {
-          instanceName: instanceName,
-          qrcode: true,
-          integration: 'WHATSAPP-BAILEYS',
-        },
-        {
-          headers: {
-            'apikey': evolutionApiKey,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      evolutionData = evoResponse.data;
-    } catch (evoError: any) {
-      console.error('Evolution API Error:', evoError.response?.data || evoError.message);
-    }
-
-    const specificApiKey = 'my-desired-api-key';
+    // Evolution API is no longer used: WhatsApp connects via Meta Cloud API (Embedded Signup).
+    // instanceName is kept only as an internal identifier used by other modules.
+    const slug = String(companyName).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'client';
+    const instanceName = (reqInstanceName && String(reqInstanceName).trim()) || `${slug}-${Math.random().toString(36).slice(2, 7)}`;
 
     const startDate = new Date();
     const endDate = new Date();
@@ -68,9 +49,6 @@ export const createClient = async (req: Request, res: Response) => {
           amountCharged: 0,
           paymentStatus: 'UNPAID',
           instanceName,
-          instanceId: evolutionData?.instance?.instanceId || null,
-          evolutionApiUrl: 'http://2.24.212.209:5020',
-          evolutionApiKey: specificApiKey,
           originLat: originLat ? parseFloat(originLat) : undefined,
           originLng: originLng ? parseFloat(originLng) : undefined,
           originAddress: originAddress || undefined,

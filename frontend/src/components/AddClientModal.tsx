@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Check, Loader2, Globe, Settings, Zap, Info, Link as LinkIcon, BookOpen } from 'lucide-react';
+import { X, Check, Loader2 } from 'lucide-react';
 
 interface AddClientModalProps {
   isOpen: boolean;
@@ -10,7 +10,6 @@ interface AddClientModalProps {
 }
 
 export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClientModalProps) {
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,36 +21,19 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClient
     address: '',
     email: '',
     password: '',
-    // Step 2 Form State
-    instanceName: '',
-    evolutionApiUrl: 'https://evalution-2-evolution-api.a65iq4.easypanel.host',
-    evolutionApiKey: 'EvoApiSecretKey2026!',
-    n8nWebhookUrl: '',
-    initialKnowledgeBase: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const nextStep = () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!formData.ownerName || !formData.companyName || !formData.email || !formData.password) {
       setError('Please fill out all required fields.');
       return;
     }
-    setError('');
-    setStep(2);
-  };
 
-  const prevStep = () => setStep(1);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.instanceName) {
-      setError('Instance name is required.');
-      return;
-    }
-    
     setError('');
     setLoading(true);
 
@@ -75,11 +57,7 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClient
       onSuccess();
       onClose();
       // Reset form
-      setStep(1);
-      setFormData({
-        ownerName: '', companyName: '', phoneNumber: '', address: '', email: '', password: '',
-        instanceName: '', evolutionApiUrl: 'https://evalution-2-evolution-api.a65iq4.easypanel.host', evolutionApiKey: 'EvoApiSecretKey2026!', n8nWebhookUrl: '', initialKnowledgeBase: ''
-      });
+      setFormData({ ownerName: '', companyName: '', phoneNumber: '', address: '', email: '', password: '' });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -98,7 +76,7 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClient
           <div>
             <h2 className="text-2xl font-bold text-[#0a1142]">Onboard New Client</h2>
             <p className="text-gray-500 text-sm mt-1">
-              Step {step} of 2: {step === 1 ? 'Client Information & Credentials' : 'Evolution API Setup'}
+              Client Information & Credentials
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
@@ -115,7 +93,7 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClient
             </div>
           )}
 
-          {step === 1 && (
+          {(
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
@@ -158,105 +136,17 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClient
             </div>
           )}
 
-          {step === 2 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              <p className="text-gray-500 text-sm mb-4">
-                Configure the connection between your instance and the automation engine.
-              </p>
-
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                
-                {/* Instance Details Section */}
-                <div className="flex items-start space-x-4 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Globe className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-[#0a1142] font-bold text-lg leading-tight">Instance Details</h3>
-                    <p className="text-gray-500 text-sm mb-4">Your dedicated SaaS subdomain environment.</p>
-                    
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center">
-                        INSTANCE NAME <Info className="w-3.5 h-3.5 ml-1 text-gray-400" />
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Globe className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input 
-                          type="text" 
-                          name="instanceName" 
-                          value={formData.instanceName} 
-                          onChange={handleChange} 
-                          required
-                          className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-[#d51381] focus:ring-1 focus:ring-[#d51381] transition-colors" 
-                          placeholder="acme-corp-bot" 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="h-px bg-gray-100 w-full my-6"></div>
-
-                {/* API Credentials Section */}
-                <div className="flex items-start space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Settings className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-[#0a1142] font-bold text-lg leading-tight">API Credentials</h3>
-                    <p className="text-gray-500 text-sm mb-4">Secure keys for backend service integration.</p>
-                    
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center">
-                        EVOLUTION API KEY <Info className="w-3.5 h-3.5 ml-1 text-gray-400" />
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Zap className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input 
-                          type="password" 
-                          name="evolutionApiKey" 
-                          value={formData.evolutionApiKey} 
-                          onChange={handleChange} 
-                          required
-                          className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-[#d51381] focus:ring-1 focus:ring-[#d51381] transition-colors" 
-                          placeholder="Enter your evolution api key" 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer Actions */}
         <div className="px-8 py-5 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
-          {step === 1 ? (
-            <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-xl text-gray-600 font-semibold hover:bg-gray-200 transition-colors">
-              Cancel
-            </button>
-          ) : (
-            <button type="button" onClick={prevStep} disabled={loading} className="px-6 py-2.5 rounded-xl text-gray-600 font-semibold hover:bg-gray-200 transition-colors flex items-center">
-              <ChevronLeft className="w-4 h-4 mr-1" /> Back
-            </button>
-          )}
-
-          {step === 1 ? (
-            <button type="button" onClick={nextStep} className="px-6 py-2.5 rounded-xl bg-[#0a1142] text-white font-semibold hover:bg-[#152066] transition-colors flex items-center shadow-lg shadow-blue-900/20">
-              Next Step <ChevronRight className="w-4 h-4 ml-1" />
-            </button>
-          ) : (
-            <button type="button" onClick={handleSubmit} disabled={loading} className="px-8 py-2.5 rounded-xl bg-[#d51381] text-white font-semibold hover:bg-[#b00e6a] transition-all flex items-center shadow-lg shadow-pink-500/30 disabled:opacity-70">
-              {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Check className="w-5 h-5 mr-2" />}
-              {loading ? 'Provisioning...' : 'Create Client & Instance'}
-            </button>
-          )}
+          <button type="button" onClick={onClose} disabled={loading} className="px-6 py-2.5 rounded-xl text-gray-600 font-semibold hover:bg-gray-200 transition-colors">
+            Cancel
+          </button>
+          <button type="button" onClick={handleSubmit} disabled={loading} className="px-8 py-2.5 rounded-xl bg-[#d51381] text-white font-semibold hover:bg-[#b00e6a] transition-all flex items-center shadow-lg shadow-pink-500/30 disabled:opacity-70">
+            {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Check className="w-5 h-5 mr-2" />}
+            {loading ? 'Creating...' : 'Create Client'}
+          </button>
         </div>
 
       </div>
