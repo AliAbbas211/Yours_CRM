@@ -5,6 +5,8 @@ import {
   cloudStatus,
   disconnectCloud,
   sendFromPortal,
+  listConversations,
+  listMessages,
   sendFromInternal,
   webhookVerify,
   webhookReceive,
@@ -24,5 +26,7 @@ router.get('/status', authenticateToken, cloudStatus);
 router.post('/connect', authenticateToken, connectCloud);
 router.delete('/disconnect', authenticateToken, disconnectCloud);
 router.post('/send', authenticateToken, sendFromPortal);
+router.get('/conversations', authenticateToken, listConversations);
+router.get('/messages', authenticateToken, listMessages);
 
 export default router;

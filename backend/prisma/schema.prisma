@@ -327,3 +327,18 @@ model WhitelistContact {
   @@unique([clientId, remoteJid])
   @@index([clientId])
 }
+
+// WhatsApp Cloud API inbox: one row per message sent from / received by the CRM.
+model WaCloudMessage {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId    String   @db.ObjectId
+  waId        String
+  contactName String?
+  direction   String
+  type        String   @default("text")
+  text        String?
+  waMessageId String?
+  createdAt   DateTime @default(now())
+
+  @@index([clientId, waId, createdAt])
+}

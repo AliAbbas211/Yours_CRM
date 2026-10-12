@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle, Loader2, LogOut, Send, Smartphone } from 'lucide-react';
+import CloudInbox from './CloudInbox';
 
 declare global {
   interface Window {
@@ -33,6 +34,11 @@ export default function ConnectWhatsAppCloud() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const sessionRef = useRef<{ waba_id?: string; phone_number_id?: string; coex?: boolean } | null>(null);
+
+  // Manual connect (WABA ID + phone number ID + token)
+  const [mWaba, setMWaba] = useState('');
+  const [mPhone, setMPhone] = useState('');
+  const [mToken, setMToken] = useState('');
 
   // Test message box
   const [testTo, setTestTo] = useState('');
@@ -148,6 +154,29 @@ export default function ConnectWhatsAppCloud() {
     );
   };
 
+  const connectManual = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      const res = await fetch('/api/whatsapp-cloud/connect', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ wabaId: mWaba.trim(), phoneNumberId: mPhone.trim(), accessToken: mToken.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Failed to connect WhatsApp.');
+        return;
+      }
+      setMToken('');
+      await loadStatus();
+    } catch (e: any) {
+      setError(e.message || 'Failed to connect WhatsApp.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const disconnect = async () => {
     if (!confirm('Disconnect this WhatsApp number from Yours CRM?')) return;
     await fetch('/api/whatsapp-cloud/disconnect', { method: 'DELETE', headers: authHeaders() });
@@ -209,6 +238,25 @@ export default function ConnectWhatsAppCloud() {
             {busy ? 'Connecting...' : 'Connect WhatsApp'}
           </button>
           <button onClick={() => launchSignup(true)} disabled={busy || !sdkReady} className="mt-3 border border-[#0a1142] text-[#0a1142] px-6 py-3 rounded-xl font-bold disabled:opacity-60">Connect existing WhatsApp Business app number</button>
+
+          <details className="mt-6 border border-gray-100 rounded-2xl p-4">
+            <summary className="cursor-pointer font-bold text-sm text-[#0a1142]">Advanced: connect with WABA ID, Phone number ID and access token</summary>
+            <p className="text-xs text-gray-500 mt-3 mb-3">
+              For a number already set up in Meta&apos;s WhatsApp Manager / API Setup. The token is checked with Meta and stored on the server only.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input value={mWaba} onChange={(e) => setMWaba(e.target.value)} placeholder="WhatsApp Business Account ID" className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm" />
+              <input value={mPhone} onChange={(e) => setMPhone(e.target.value)} placeholder="Phone number ID" className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm" />
+              <input value={mToken} onChange={(e) => setMToken(e.target.value)} type="password" placeholder="Access token" className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm" />
+            </div>
+            <button
+              onClick={connectManual}
+              disabled={busy || !mWaba || !mPhone || !mToken}
+              className="mt-3 bg-[#0a1142] text-white px-5 py-2.5 rounded-xl font-bold text-sm disabled:opacity-60"
+            >
+              {busy ? 'Connecting...' : 'Connect'}
+            </button>
+          </details>
         </div>
       )}
 
@@ -251,6 +299,8 @@ export default function ConnectWhatsAppCloud() {
             </div>
             {sendResult && <div className="mt-2 text-sm font-bold text-[#0a1142]">{sendResult}</div>}
           </div>
+
+          <CloudInbox />
 
           <button onClick={disconnect} className="text-red-500 hover:text-red-600 font-bold text-sm flex items-center">
             <LogOut className="w-4 h-4 mr-1" /> Disconnect
