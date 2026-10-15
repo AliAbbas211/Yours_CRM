@@ -191,6 +191,24 @@ export const disconnectCloud = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Turn Meta send errors into clear, actionable responses (instead of a bare 500).
+function sendErrorResponse(error: any) {
+  const e = error?.response?.data?.error;
+  const code = e?.code;
+  const msg = e?.message || error?.message || 'Failed to send message';
+  if (code === 131047 || code === 131026) {
+    return { status: 409, json: { error: 'The 24-hour customer service window is closed. The customer must message first, or an approved template must be used.', code, metaError: msg } };
+  }
+  if (code === 131030) {
+    return { status: 400, json: { error: 'This recipient is not in the allowed list for the test number. Add and verify the number in Meta API Setup first.', code, metaError: msg } };
+  }
+  if (code === 190) {
+    return { status: 401, json: { error: 'The WhatsApp access token is invalid or has expired. Reconnect the number with a fresh token.', code, metaError: msg } };
+  }
+  if (e) return { status: 502, json: { error: msg, code } };
+  return { status: 500, json: { error: msg } };
+}
+
 // Shared sender used by the portal and by n8n.
 async function sendForClient(clientId: string, body: any) {
   const c = await prisma.client.findUnique({ where: { id: clientId } });
@@ -223,7 +241,8 @@ export const sendFromPortal = async (req: AuthRequest, res: Response) => {
     res.status(r.status).json(r.json);
   } catch (error: any) {
     console.error('sendFromPortal error:', error.response?.data || error.message);
-    res.status(500).json({ error: error.response?.data?.error?.message || 'Failed to send message' });
+    const r = sendErrorResponse(error);
+    res.status(r.status).json(r.json);
   }
 };
 
@@ -237,7 +256,8 @@ export const sendFromInternal = async (req: Request, res: Response) => {
     res.status(r.status).json(r.json);
   } catch (error: any) {
     console.error('sendFromInternal error:', error.response?.data || error.message);
-    res.status(500).json({ error: error.response?.data?.error?.message || 'Failed to send message' });
+    const r = sendErrorResponse(error);
+    res.status(r.status).json(r.json);
   }
 };
 
