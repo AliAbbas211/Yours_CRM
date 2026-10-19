@@ -25,8 +25,8 @@ export default function ClientPortalLayout({ children }: { children: React.React
   let pageSubtitle = '';
 
   if (pathname === '/client-portal/whatsapp') {
-    pageTitle = 'WhatsApp Engine';
-    pageSubtitle = 'Connect your business WhatsApp number to the AI Agent.';
+    pageTitle = 'WhatsApp Connect';
+    pageSubtitle = "Connect your WhatsApp Business number through Meta's official Cloud API.";
   } else if (pathname === '/client-portal/settings') {
     pageTitle = 'Portal Settings';
     pageSubtitle = 'Manage your company profile and global AI chatbot configurations.';

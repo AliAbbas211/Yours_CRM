@@ -4,6 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { Smartphone, Shield, Wifi, WifiOff, Loader2, RefreshCw, CheckCircle, LogOut } from 'lucide-react';
 import ConnectWhatsAppCloud from '../../../components/ConnectWhatsAppCloud';
 
+// The unofficial QR-code (Evolution) connection panel is retired: WhatsApp is now
+// connected only through Meta's official Cloud API (ConnectWhatsAppCloud).
+const SHOW_LEGACY_QR = false;
+
 export default function WhatsAppPage() {
   const [status, setStatus] = useState<string>('CHECKING');
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -21,6 +25,7 @@ export default function WhatsAppPage() {
 
   useEffect(() => {
     fetchSettings();
+    if (!SHOW_LEGACY_QR) return;
     checkStatus();
     // Poll status every 10 seconds if we are checking or offline
     const interval = setInterval(() => {
@@ -255,7 +260,7 @@ export default function WhatsAppPage() {
 
       {activeTab === 'config' && <ConnectWhatsAppCloud />}
 
-      {activeTab === 'config' && (
+      {SHOW_LEGACY_QR && activeTab === 'config' && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
         {/* Connection Status Card */}
         <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
